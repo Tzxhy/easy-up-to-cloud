@@ -17,6 +17,21 @@ func IsUserOnline(username, password string) bool {
 	return GetKey(fmt.Sprintf("%s-%s", username, password)).(bool)
 }
 
+func HasUsername(username string) bool {
+	rows, err := DB.Query("select * from users where name = ?", username)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	hasRow := false
+	for rows.Next() {
+		hasRow = true
+		break
+	}
+
+	return hasRow
+}
+
 func AddUser(username, password string) (int64, error) {
 	stmt, err := DB.Prepare("insert into users (name, password) values(?, ?)")
 	utils.CheckErr(err)
@@ -32,6 +47,7 @@ func GetUserById(id int) *User {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer rows.Close()
 
 	var user *User = new(User)
 	for rows.Next() {
@@ -45,6 +61,7 @@ func GetUserByNameAndPassword(username, password string) *User {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer rows.Close()
 
 	var user *User = new(User)
 	for rows.Next() {

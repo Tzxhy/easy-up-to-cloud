@@ -16,8 +16,9 @@ func InitRouter() *gin.Engine {
 	auth := v1.Group("auth")
 
 	{
+		auth.POST("register", controllers.Register)
 		auth.POST("login", controllers.Login)
-		auth.POST("logout", controllers.Logout)
+		auth.POST("logout", middlewares.NeedAuth(), controllers.Logout)
 	}
 	// 目录，文件
 	fs := v1.Group("fs")

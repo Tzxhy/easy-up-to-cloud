@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 
 	"gitee.com/tzxhy/web/constants"
+	"gitee.com/tzxhy/web/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +23,7 @@ func UploadFile(c *gin.Context) {
 		log.Print(err)
 	}
 	log.Print(filePath)
-	c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", myFile.Filename))
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 }
 
 // 上传文件

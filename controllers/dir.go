@@ -2,19 +2,23 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
 type NewDirInfo struct {
-	ParentDirId int    `form:"parent_id" binding:"required"`
-	Name        string `form:"name" binding:"required"`
+	ParentDirId *int   `json:"parent_id" validate:"exists, numeric"`
+	Name        string `json:"name" binding:"required"`
 }
 
 // 创建目录
 func CreateDir(c *gin.Context) {
 	var newDirInfo NewDirInfo
-	err := c.ShouldBind(&newDirInfo)
+	err := c.ShouldBindJSON(&newDirInfo)
+	log.Print(newDirInfo)
+	log.Print(newDirInfo.ParentDirId)
+	log.Print(*newDirInfo.ParentDirId)
 	if err == nil {
 		fmt.Print(newDirInfo)
 	} else {
