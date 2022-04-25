@@ -29,28 +29,30 @@ func InitTables() {
 	_, err := DB.Exec(`
 -- 用户
 create table if not exists users(
-	uid integer primary key autoincrement,
+	uid text primary key,
 	name varchar(64) not null,
 	password varchar(64) not null,
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 -- 目录
 create table if not exists dirs(
-	did integer primary key autoincrement,
-	owner_id integer not null,
+	did text,
+	owner_id text not null,
 	dirname text not null,
-	parent_did integer,
-	create_date DATETIME DEFAULT CURRENT_TIMESTAMP
+	parent_did text,
+	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+	primary key (owner_id, dirname, parent_did)
 );
 -- 文件
 create table if not exists files(
-	fid integer primary key autoincrement,
-	owner_id integer not null,
+	fid text,
+	owner_id text not null,
 	filename text not null,
 	file_size integer not null,
-	parent_did integer,
+	parent_did text,
 	file_real_path text not null,
-	create_date DATETIME DEFAULT CURRENT_TIMESTAMP
+	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+	primary key (owner_id, filename, parent_did)
 );
 	`)
 	utils.CheckErr(err)

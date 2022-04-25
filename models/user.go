@@ -8,7 +8,7 @@ import (
 )
 
 type User struct {
-	Uid      int
+	Uid      string
 	Username string
 	Password string
 }
@@ -32,17 +32,17 @@ func HasUsername(username string) bool {
 	return hasRow
 }
 
-func AddUser(username, password string) (int64, error) {
-	stmt, err := DB.Prepare("insert into users (name, password) values(?, ?)")
+func AddUser(username, password string) (string, error) {
+	stmt, err := DB.Prepare("insert into users (uid, name, password) values(?, ?, ?)")
+	utils.CheckErr(err)
+	uid := utils.RandStringBytesMaskImprSrc(5)
+	_, err = stmt.Exec(uid, username, password)
 	utils.CheckErr(err)
 
-	result, err := stmt.Exec(username, password)
-	utils.CheckErr(err)
-
-	return result.LastInsertId()
+	return uid, nil
 }
 
-func GetUserById(id int) *User {
+func GetUserById(id string) *User {
 	rows, err := DB.Query("select * from users where uid = ?", id)
 	if err != nil {
 		log.Fatal(err)
@@ -57,16 +57,17 @@ func GetUserById(id int) *User {
 }
 
 func GetUserByNameAndPassword(username, password string) *User {
-	rows, err := DB.Query("select * from users where name = ? and password = ?", username, password)
+	rows, err := DB.Query("select uid, name, password from users where name = ? and password = ?", username, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 
-	var user *User = new(User)
+	var user *User
 	for rows.Next() {
+		user = new(User)
 		rows.Scan(&user.Uid, &user.Username, &user.Password)
+		break
 	}
-	fmt.Print("user: ", user)
 	return user
 }

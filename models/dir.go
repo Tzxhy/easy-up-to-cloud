@@ -9,28 +9,34 @@ import (
 )
 
 type Dir struct {
-	Did      	int
-	OwnerId  	int
-	Dirname		string
+	Did     string
+	OwnerId string
+	Dirname string
 	// -1 为根目录
-	ParentDiD 	int
-	CreateDate 	string
+	ParentDiD  string
+	CreateDate string
 }
 
-func AddDir(owner_id int, dirname string, parent_did int) (int64, error) {
+func AddDir(owner_id string, dirname string, parent_did string) (string, error) {
 	originDir := GetDirByName(dirname, owner_id, parent_did)
 	if originDir != nil { // 已有同名
-		return 0, errors.New(constants.TIPS_HAS_SAME_DIR)
+		return "", errors.New(constants.TIPS_HAS_SAME_DIR)
 	}
-	stmt, err := DB.Prepare("insert into dirs (owner_id, dirname, parent_did) values(?, ?, ?)")
+	if parent_did != "" { // non root
+		parentDir := GetDir(parent_did, owner_id)
+		if parentDir == nil { // no parent dir
+			return "", errors.New(constants.TIPS_CREATE_DIR_WITH_NO_EXIST_PARENT)
+		}
+	}
+	stmt, err := DB.Prepare("insert into dirs (did, owner_id, dirname, parent_did) values(?, ?, ?, ?)")
 	utils.CheckErr(err)
-
-	result, err := stmt.Exec(owner_id, dirname, parent_did)
+	did := utils.RandStringBytesMaskImprSrc(5)
+	_, err = stmt.Exec(did, owner_id, dirname, parent_did)
 	utils.CheckErr(err)
-
-	return result.LastInsertId()
+	return did, nil
 }
-func GetDirByName(name string, owner_id int, parent_did int) *Dir {
+
+func GetDirByName(name string, owner_id string, parent_did string) *Dir {
 	rows, err := DB.Query("select * from dirs where owner_id = ? and dirname = ? and parent_did = ?", owner_id, name, parent_did)
 	if err != nil {
 		log.Fatal(err)
@@ -45,15 +51,16 @@ func GetDirByName(name string, owner_id int, parent_did int) *Dir {
 	}
 	return dir
 }
-func GetDir(id int, owner_id int) *Dir {
-	rows, err := DB.Query("select * from dirs where owner_id = ? and did = ?", owner_id, id)
+func GetDir(did string, owner_id string) *Dir {
+	rows, err := DB.Query("select * from dirs where owner_id = ? and did = ?", owner_id, did)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 
-	var dir *Dir = new(Dir)
+	var dir *Dir
 	for rows.Next() {
+		dir = new(Dir)
 		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
 		break
 	}
