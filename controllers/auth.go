@@ -43,7 +43,7 @@ func Login(c *gin.Context) {
 		if loginInfo.Username != "" && loginInfo.Password != "" {
 			userInfo := models.GetUserByNameAndPassword(loginInfo.Username, loginInfo.Password)
 			if userInfo.Uid != 0 {
-				tokenString, _ := utils.GenToken(userInfo.Username)
+				tokenString, _ := utils.GenToken(userInfo.Username, userInfo.Uid)
 				c.SetCookie(constants.TOKEN_COOKIE_NAME, tokenString, int(time.Hour.Seconds()*24), "/", "", false, false)
 				models.SetKey(tokenString, 1)
 				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))

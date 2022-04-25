@@ -2,13 +2,16 @@ package controllers
 
 import (
 	"fmt"
-	"log"
+	"net/http"
 
+	"gitee.com/tzxhy/web/constants"
+	"gitee.com/tzxhy/web/models"
+	"gitee.com/tzxhy/web/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type NewDirInfo struct {
-	ParentDirId *int   `json:"parent_id" validate:"exists, numeric"`
+	ParentDirId *int   `json:"parent_id"`
 	Name        string `json:"name" binding:"required"`
 }
 
@@ -16,13 +19,23 @@ type NewDirInfo struct {
 func CreateDir(c *gin.Context) {
 	var newDirInfo NewDirInfo
 	err := c.ShouldBindJSON(&newDirInfo)
-	log.Print(newDirInfo)
-	log.Print(newDirInfo.ParentDirId)
-	log.Print(*newDirInfo.ParentDirId)
-	if err == nil {
-		fmt.Print(newDirInfo)
+	uid, _ := c.Get("uid")
+	parnetDidNum := 0
+	
+	if newDirInfo.ParentDirId != nil {
+		parnetDidNum = *newDirInfo.ParentDirId
 	} else {
-		fmt.Print(err)
+		parnetDidNum = -1
+	}
+	did, err := models.AddDir(uid.(int), newDirInfo.Name, parnetDidNum)
+	if err == nil {
+		fmt.Print(did)
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+			"did": did,
+		}))
+	} else {
+		
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_UNHANDLED_ERROR, err.Error(), nil))
 	}
 }
 

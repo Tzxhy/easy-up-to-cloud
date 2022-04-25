@@ -9,6 +9,7 @@ import (
 
 type MyClaims struct {
 	Username string `json:"username"`
+	UserId int `json:"userid"`
 	jwt.StandardClaims
 }
 
@@ -17,10 +18,11 @@ var MySecret = []byte("qva5im03q96fnjaga1rnafp3qrsi8r")
 const TokenExpireDuration = time.Hour * 24
 
 // GenToken 生成JWT
-func GenToken(username string) (string, error) {
+func GenToken(username string, userid int) (string, error) {
 	// 创建一个我们自己的声明
 	c := MyClaims{
 		username, // 自定义字段
+		userid,
 		jwt.StandardClaims{
 			ExpiresAt: jwt.NewTime(float64(time.Now().Add(TokenExpireDuration).Unix())), // 过期时间
 			Issuer:    "root",                                                           // 签发人
