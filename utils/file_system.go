@@ -18,5 +18,5 @@ func MakeSurePathExists(dirName string) {
 	if IsPathExists(dirName) {
 		return
 	}
-	os.Mkdir(dirName, 0666)
+	os.Mkdir(dirName, 0777)
 }

@@ -26,9 +26,11 @@ func InitRouter() *gin.Engine {
 	{
 		fs.POST("create-dir", controllers.CreateDir)
 		fs.GET("get-dir-info", controllers.GetDir)
+		fs.GET("get-dir-list", controllers.GetDirList)
 		fs.GET("search", controllers.SearchFileOrDir)
 		fs.POST("upload", controllers.UploadFile)
 		fs.GET("download", controllers.DownloadFile)
+		fs.GET("preview", controllers.PreviewFile)
 		fs.POST("delete", controllers.DeleteFile)
 	}
 

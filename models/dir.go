@@ -9,12 +9,12 @@ import (
 )
 
 type Dir struct {
-	Did     string
-	OwnerId string
-	Dirname string
+	Did     string `json:"did"`
+	OwnerId string `json:"owner_id"`
+	Dirname string `json:"dirname"`
 	// -1 为根目录
-	ParentDiD  string
-	CreateDate string
+	ParentDiD  string `json:"parent_did"`
+	CreateDate string `json:"create_date"`
 }
 
 func AddDir(owner_id string, dirname string, parent_did string) (string, error) {
@@ -65,6 +65,22 @@ func GetDir(did string, owner_id string) *Dir {
 		break
 	}
 	return dir
+}
+
+func GetDirList(parent_id, owner_id string ) *[]Dir {
+	rows, err := DB.Query("select * from dirs where owner_id = ? and parent_did = ?", owner_id, parent_id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var dirs []Dir
+	for rows.Next() {
+		dir := new(Dir)
+		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
+		dirs = append(dirs, *dir)
+	}
+	return &dirs
 }
 
 // func GetUserByNameAndPassword(username, password string) *User {
