@@ -110,9 +110,45 @@ func PreviewFile(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
 }
 
+type FileRenameReq struct {
+	Fid  string `json:"fid" form:"fid" binding:"required"`
+	Name string `json:"name" form:"name" binding:"required"`
+}
+
 // 重命名
 func RenameFile(c *gin.Context) {
+	var fileRenameReq FileRenameReq
+	if c.ShouldBind(&fileRenameReq) != nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		return
+	}
+	uid, _ := c.Get("uid")
+	succ := models.RenameFile(uid.(string), fileRenameReq.Fid, fileRenameReq.Name)
+	if succ {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_FILE_WITH_ERROR, constants.TIPS_RENAME_FILE_WITH_ERROR, nil))
+	}
+}
 
+type MoveFileReq struct {
+	Fid          string `json:"fid" form:"fid" binding:"required"`
+	NewParentDid string `json:"new_parent_did" form:"new_parent_did"`
+}
+
+func MoveFile(c *gin.Context) {
+	var moveFileReq MoveFileReq
+	if c.ShouldBind(&moveFileReq) != nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		return
+	}
+	uid, _ := c.Get("uid")
+	succ := models.MoveFile(uid.(string), moveFileReq.Fid, moveFileReq.NewParentDid)
+	if succ {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_FILE_WITH_ERROR, constants.TIPS_MOVE_FILE_WITH_ERROR, nil))
+	}
 }
 
 func DeleteFile(c *gin.Context) {

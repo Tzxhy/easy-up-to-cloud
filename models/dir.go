@@ -67,7 +67,7 @@ func GetDir(did string, owner_id string) *Dir {
 	return dir
 }
 
-func GetDirList(parent_id, owner_id string ) *[]Dir {
+func GetDirList(parent_id, owner_id string) *[]Dir {
 	rows, err := DB.Query("select * from dirs where owner_id = ? and parent_did = ?", owner_id, parent_id)
 	if err != nil {
 		log.Fatal(err)
@@ -83,17 +83,25 @@ func GetDirList(parent_id, owner_id string ) *[]Dir {
 	return &dirs
 }
 
-// func GetUserByNameAndPassword(username, password string) *User {
-// 	rows, err := DB.Query("select * from users where name = ? and password = ?", username, password)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer rows.Close()
+func MoveDir(owner_id string, did string, new_parent_did string) bool {
+	if new_parent_did != "" && GetDir(new_parent_did, owner_id) == nil {
+		return false
+	}
+	stmt, err := DB.Prepare("update dirs set parent_did = ? where owner_id = ? and did = ?")
+	utils.CheckErr(err)
+	defer stmt.Close()
+	result, err := stmt.Exec(new_parent_did, owner_id, did)
+	utils.CheckErr(err)
+	lines, _ := result.RowsAffected()
+	return lines == 1
+}
 
-// 	var user *User = new(User)
-// 	for rows.Next() {
-// 		rows.Scan(&user.Uid, &user.Username, &user.Password)
-// 	}
-// 	fmt.Print("user: ", user)
-// 	return user
-// }
+func RenameDir(owner_id string, did string, new_name string) bool {
+	stmt, err := DB.Prepare("update dirs set dirname = ? where owner_id = ? and did = ?")
+	utils.CheckErr(err)
+	defer stmt.Close()
+	result, err := stmt.Exec(new_name, owner_id, did)
+	utils.CheckErr(err)
+	lines, _ := result.RowsAffected()
+	return lines == 1
+}

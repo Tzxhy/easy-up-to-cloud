@@ -109,6 +109,29 @@ func DeleteFile(fid string, owner_id string) bool {
 	stmt, err := DB.Prepare("delete from files where fid = ? and owner_id = ?")
 	utils.CheckErr(err)
 	result, err := stmt.Exec(fid, owner_id)
+	utils.CheckErr(err)
 	affectedLines, err := result.RowsAffected()
+	utils.CheckErr(err)
+	return affectedLines == 1
+}
+func RenameFile(owner_id, fid, name string) bool {
+	stmt, err := DB.Prepare("update files set filename = ? where owner_id = ? and fid = ?")
+	utils.CheckErr(err)
+	result, err := stmt.Exec(name, owner_id, fid)
+	utils.CheckErr(err)
+	affectedLines, err := result.RowsAffected()
+	utils.CheckErr(err)
+	return affectedLines == 1
+}
+func MoveFile(owner_id, fid, new_parent_did string) bool {
+	if new_parent_did != "" && GetDir(new_parent_did, owner_id) == nil {
+		return false
+	}
+	stmt, err := DB.Prepare("update files set parent_did = ? where owner_id = ? and fid = ?")
+	utils.CheckErr(err)
+	result, err := stmt.Exec(new_parent_did, owner_id, fid)
+	utils.CheckErr(err)
+	affectedLines, err := result.RowsAffected()
+	utils.CheckErr(err)
 	return affectedLines == 1
 }

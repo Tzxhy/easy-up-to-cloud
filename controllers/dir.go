@@ -111,7 +111,45 @@ func DeleteDir(c *gin.Context) {
 
 }
 
+type RenameDirReq struct {
+	Did  string `json:"did" form:"did" binding:"required"`
+	Name string `json:"name" form:"name" binding:"required"`
+}
+
 // 重命名目录
 func RenameDir(c *gin.Context) {
+	var renameDirReq RenameDirReq
+	if c.ShouldBind(&renameDirReq) != nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		return
+	}
+	uid, _ := c.Get("uid")
+	succ := models.RenameDir(uid.(string), renameDirReq.Did, renameDirReq.Name)
+	if succ {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_DIR_WITH_ERROR, constants.TIPS_RENAME_DIR_WITH_ERROR, nil))
+	}
+}
 
+type MoveDirReq struct {
+	Did          string `json:"did" form:"did" binding:"required"`
+	NewParentDid string `json:"new_parent_did" form:"new_parent_did"`
+}
+
+// 移动文件夹
+func MoveDir(c *gin.Context) {
+	var moveDirReq MoveDirReq
+	if c.ShouldBind(&moveDirReq) == nil {
+		uid, _ := c.Get("uid")
+		succ := models.MoveDir(uid.(string), moveDirReq.Did, moveDirReq.NewParentDid)
+		if succ {
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+			return
+		} else {
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_DIR_WITH_ERROR, constants.TIPS_MOVE_DIR_WITH_ERROR, nil))
+		}
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+	}
 }

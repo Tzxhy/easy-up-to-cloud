@@ -8,6 +8,7 @@ import (
 
 func InitRouter() *gin.Engine {
 	r := gin.Default()
+	r.Use(middlewares.Cors())
 	v1 := r.Group("/api/v1")
 
 	v1.GET("ping", controllers.Ping)
@@ -25,9 +26,14 @@ func InitRouter() *gin.Engine {
 	fs.Use(middlewares.NeedAuth())
 	{
 		fs.POST("create-dir", controllers.CreateDir)
-		fs.GET("get-dir-info", controllers.GetDir)
+		fs.POST("move-dir", controllers.MoveDir)
+		fs.POST("rename-dir", controllers.RenameDir)
 		fs.GET("get-dir-list", controllers.GetDirList)
+		fs.GET("get-dir-info", controllers.GetDir)
 		fs.GET("search", controllers.SearchFileOrDir)
+
+		fs.POST("move-file", controllers.MoveFile)
+		fs.POST("rename-file", controllers.RenameFile)
 		fs.POST("upload", controllers.UploadFile)
 		fs.GET("download", controllers.DownloadFile)
 		fs.GET("preview", controllers.PreviewFile)
