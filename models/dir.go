@@ -101,7 +101,9 @@ func RenameDir(owner_id string, did string, new_name string) bool {
 	utils.CheckErr(err)
 	defer stmt.Close()
 	result, err := stmt.Exec(new_name, owner_id, did)
-	utils.CheckErr(err)
+	if err != nil {
+		return false
+	}
 	lines, _ := result.RowsAffected()
 	return lines == 1
 }
