@@ -107,3 +107,16 @@ func RenameDir(owner_id string, did string, new_name string) bool {
 	lines, _ := result.RowsAffected()
 	return lines == 1
 }
+
+// 删除指定did文件夹（不会递归删除其下文件/文件夹）
+func DeleteSingleDir(owner_id string, did string) bool {
+	stmt, err := DB.Prepare("delete from dirs where owner_id = ? and did = ?")
+	utils.CheckErr(err)
+	defer stmt.Close()
+	result, err := stmt.Exec(owner_id, did)
+	if err != nil {
+		return false
+	}
+	lines, _ := result.RowsAffected()
+	return lines == 1
+}

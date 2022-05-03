@@ -155,30 +155,64 @@ func DeleteFile(c *gin.Context) {
 	var fileIdReq FileIdReq
 	if c.ShouldBind(&fileIdReq) == nil {
 		uid, _ := c.Get("uid")
-		file := models.GetFile(fileIdReq.Fid, uid.(string))
-		if file != nil {
-			succ := models.DeleteFile(fileIdReq.Fid, uid.(string))
-			if succ {
-				// 删除实际文件
-				err := os.Remove(file.FileRealPath)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, utils.ReturnJSON(
-						constants.CODE_UNHANDLED_ERROR,
-						err.Error(),
-						nil,
-					))
-					return
-				}
-				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
-				return
-			}
-		} else {
+		deleteCode := deleteFile(fileIdReq.Fid, uid.(string))
+		if deleteCode == OK {
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+			return
+		} else if FILE_NOT_FOUND == deleteCode {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.TIPS_FILE_NOT_EXIST, nil))
 			return
 		}
+		// file := models.GetFile(fileIdReq.Fid, uid.(string))
+		// if file != nil {
+		// 	succ := models.DeleteFile(fileIdReq.Fid, uid.(string))
+		// 	if succ {
+		// 		// 删除实际文件
+		// 		err := os.Remove(file.FileRealPath)
+		// 		if err != nil {
+		// 			c.JSON(http.StatusInternalServerError, utils.ReturnJSON(
+		// 				constants.CODE_UNHANDLED_ERROR,
+		// 				err.Error(),
+		// 				nil,
+		// 			))
+		// 			return
+		// 		}
+		// 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+		// 		return
+		// 	}
+		// } else {
+		// 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.TIPS_FILE_NOT_EXIST, nil))
+		// 	return
+		// }
 
 	} else {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+	}
+}
+
+const (
+	INTERNAL_ERROR = iota
+	FILE_NOT_FOUND
+	DELETE_ERROR
+	OK
+)
+
+func deleteFile(fid, uid string) uint8 {
+	file := models.GetFile(fid, uid)
+	if file != nil {
+		succ := models.DeleteFile(fid, uid)
+		if succ {
+			// 删除实际文件
+			err := os.Remove(file.FileRealPath)
+			if err != nil {
+				return INTERNAL_ERROR
+			}
+			return OK
+		} else {
+			return DELETE_ERROR
+		}
+	} else {
+		return FILE_NOT_FOUND
 	}
 }
 

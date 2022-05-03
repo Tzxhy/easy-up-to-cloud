@@ -104,10 +104,42 @@ func SearchFileOrDir(c *gin.Context) {
 
 }
 
+type DeleteDirInfo struct {
+	DirId string `form:"did" json:"did" binding:"required"`
+}
+
 // 删除目录
 // 会删除对应数据库，删除对应的文件
 // 高危操作
 func DeleteDir(c *gin.Context) {
+	var deleteDirInfo DeleteDirInfo
+	if c.ShouldBind(&deleteDirInfo) == nil {
+		// models.Get
+		uid, _ := c.Get("uid")
+		deleteDir(uid.(string), deleteDirInfo.DirId)
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+		return
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		return
+	}
+}
+
+// 删除目录
+func deleteDir(owner_id, did string) {
+	// 先找到所有文件夹，文件，递归执行删除，再删除文件夹
+	dirs := models.GetDirList(did, owner_id)
+	files := models.GetFileList(did, owner_id)
+
+	for _, item := range *files {
+		deleteFile(item.Fid, owner_id)
+	}
+
+	for _, item := range *dirs {
+		deleteDir(owner_id, item.Did)
+	}
+
+	models.DeleteSingleDir(owner_id, did)
 
 }
 

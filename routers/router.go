@@ -26,6 +26,7 @@ func InitRouter() *gin.Engine {
 	fs.Use(middlewares.NeedAuth())
 	{
 		fs.POST("create-dir", controllers.CreateDir)
+		fs.POST("delete-dir", controllers.DeleteDir)
 		fs.POST("move-dir", controllers.MoveDir)
 		fs.POST("rename-dir", controllers.RenameDir)
 		fs.GET("get-dir-list", controllers.GetDirList)

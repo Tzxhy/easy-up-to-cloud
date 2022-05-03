@@ -13,7 +13,7 @@ func NeedAuth() gin.HandlerFunc {
 
 		token, err := c.Cookie(constants.TOKEN_COOKIE_NAME)
 		if err != nil {
-			c.JSON(http.StatusForbidden, utils.ReturnJSON(constants.CODE_NOT_LOGIN, constants.TIPS_NOT_LOGIN, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_NOT_LOGIN, constants.TIPS_NOT_LOGIN, nil))
 			c.Abort()
 			return
 		}
