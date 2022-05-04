@@ -143,6 +143,31 @@ func deleteDir(owner_id, did string) {
 
 }
 
+type DeleteDirAndFileListReq struct {
+	DirsId  []string `form:"dids" json:"dids" binding:"required"`
+	FilesId []string `form:"fileIds" json:"fileIds" binding:"required"`
+}
+
+func DeleteDirAndFileList(c *gin.Context) {
+	var deleteDirAndFileListReq DeleteDirAndFileListReq
+	err := c.ShouldBind(&deleteDirAndFileListReq)
+	if err == nil {
+		// models.Get
+		uid, _ := c.Get("uid")
+		for _, dir := range deleteDirAndFileListReq.DirsId {
+			deleteDir(uid.(string), dir)
+		}
+		for _, file := range deleteDirAndFileListReq.FilesId {
+			deleteFile(file, uid.(string))
+		}
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+		return
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, err.Error(), nil))
+		return
+	}
+}
+
 type RenameDirReq struct {
 	Did  string `json:"did" form:"did" binding:"required"`
 	Name string `json:"name" form:"name" binding:"required"`
@@ -181,6 +206,30 @@ func MoveDir(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_DIR_WITH_ERROR, constants.TIPS_MOVE_DIR_WITH_ERROR, nil))
 		}
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+	}
+}
+
+type MoveDirsAndFilesReq struct {
+	Dirs         []string `json:"dirs" form:"dirs" binding:"required"`
+	FileIds      []string `json:"fileIds" form:"fileIds" binding:"required"`
+	NewParentDid string   `json:"new_parent_did" form:"new_parent_did"`
+}
+
+// 移动文件夹
+func MoveDirsAndFiles(c *gin.Context) {
+	var moveDirsAndFilesReq MoveDirsAndFilesReq
+	if c.ShouldBind(&moveDirsAndFilesReq) == nil {
+		uid, _ := c.Get("uid")
+		for _, dir := range moveDirsAndFilesReq.Dirs {
+			models.MoveDir(uid.(string), dir, moveDirsAndFilesReq.NewParentDid)
+		}
+		for _, fileId := range moveDirsAndFilesReq.FileIds {
+			models.MoveFile(uid.(string), fileId, moveDirsAndFilesReq.NewParentDid)
+		}
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+		return
 	} else {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
 	}

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"log"
+	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -34,15 +36,13 @@ func UploadFile(c *gin.Context) {
 	if uploadFileReq.ParentDid != nil {
 		did = *uploadFileReq.ParentDid
 	}
-	// log.Print(myFile)
-	// log.Print(uid)
-	// log.Print(did)
+
 	file := models.GetFileByName(myFile.Filename, uid.(string), did)
 	if file != nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILENAME_HAS_BEEN_USED, constants.TIPS_FILENAME_HAS_BEEN_USED, nil))
 		return
 	}
-	filePath := filepath.Join(constants.UPLOAD_PATH, uid.(string), myFile.Filename)
+	filePath := filepath.Join(constants.UPLOAD_PATH, uid.(string), did, myFile.Filename)
 	utils.MakeSurePathExists(filepath.Dir(filePath))
 	log.Print(filePath)
 	err = c.SaveUploadedFile(myFile, filePath)
@@ -82,8 +82,12 @@ func DownloadFile(c *gin.Context) {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.TIPS_FILE_NOT_EXIST, nil))
 			return
 		}
-		c.Header("Content-Type", "application/octet-stream")
-		c.Header("Content-Disposition", "attachment; filename="+fileInfo.Filename)
+		contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		c.Header("Content-Type", contentType)
+		c.Header("Content-Disposition", "attachment; filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.File(fileInfo.FileRealPath)
 		return
@@ -101,8 +105,12 @@ func PreviewFile(c *gin.Context) {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.TIPS_FILE_NOT_EXIST, nil))
 			return
 		}
-		c.Header("Content-Type", "application/octet-stream")
-		c.Header("Content-Disposition", "inline")
+		contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		c.Header("Content-Type", contentType)
+		c.Header("Content-Disposition", "inline;filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.File(fileInfo.FileRealPath)
 		return
