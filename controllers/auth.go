@@ -14,12 +14,14 @@ import (
 type LoginInfo struct {
 	Username string `json:"username" form:"username" binding:"required"`
 	Password string `json:"password" form:"password" binding:"required"`
+	Remember bool   `json:"remember" form:"remember"`
 }
 
 // 注册
 func Register(c *gin.Context) {
 	var loginInfo LoginInfo
 	if c.ShouldBind(&loginInfo) == nil {
+		log.Print(loginInfo)
 		if loginInfo.Username != "" && loginInfo.Password != "" {
 
 			alreadyHasUserName := models.HasUsername(loginInfo.Username)
@@ -41,12 +43,15 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var loginInfo LoginInfo
 	if c.ShouldBind(&loginInfo) == nil {
-		log.Print("loginInfo", loginInfo)
 		if loginInfo.Username != "" && loginInfo.Password != "" {
 			userInfo := models.GetUserByNameAndPassword(loginInfo.Username, loginInfo.Password)
 			if userInfo != nil {
 				tokenString, _ := utils.GenToken(userInfo.Username, userInfo.Uid)
-				c.SetCookie(constants.TOKEN_COOKIE_NAME, tokenString, int(time.Hour.Seconds()*24), "/", "", false, false)
+				timeSecond := 0
+				if loginInfo.Remember {
+					timeSecond = int(time.Hour.Seconds() * 24)
+				}
+				c.SetCookie(constants.TOKEN_COOKIE_NAME, tokenString, timeSecond, "/", "", false, true)
 				models.SetKey(tokenString, 1)
 				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 				return
