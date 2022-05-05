@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/hex"
 	"log"
 	"mime"
 	"net/http"
@@ -42,7 +43,8 @@ func UploadFile(c *gin.Context) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILENAME_HAS_BEEN_USED, constants.TIPS_FILENAME_HAS_BEEN_USED, nil))
 		return
 	}
-	filePath := filepath.Join(constants.UPLOAD_PATH, uid.(string), did, myFile.Filename)
+	fileNameHex := hex.EncodeToString([]byte(myFile.Filename)) + filepath.Ext(myFile.Filename)
+	filePath := filepath.Join(constants.UPLOAD_PATH, uid.(string), did, fileNameHex)
 	utils.MakeSurePathExists(filepath.Dir(filePath))
 	log.Print(filePath)
 	err = c.SaveUploadedFile(myFile, filePath)

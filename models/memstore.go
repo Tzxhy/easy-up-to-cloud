@@ -1,8 +1,12 @@
 package models
 
-import (
-	"gitee.com/tzxhy/web/middlewares"
-)
+type Store = map[string]interface{}
+
+var store = make(Store)
+
+func GetStore() Store {
+	return store
+}
 
 type MemStore interface {
 	GetKey(key string) interface{}
@@ -10,7 +14,7 @@ type MemStore interface {
 }
 
 func GetKey(k string) interface{} {
-	s := middlewares.GetStore()
+	s := GetStore()
 	V, ok := s[k]
 	if ok {
 		return V
@@ -19,11 +23,11 @@ func GetKey(k string) interface{} {
 }
 
 func SetKey(k string, val interface{}) {
-	store := middlewares.GetStore()
+	store := GetStore()
 	store[k] = val
 }
 
 func ClearKey(k string) {
-	store := middlewares.GetStore()
+	store := GetStore()
 	delete(store, k)
 }

@@ -9,6 +9,7 @@ import (
 func InitRouter() *gin.Engine {
 	r := gin.Default()
 	r.Use(middlewares.Cors())
+	r.Use(middlewares.FrontendFileHandler())
 	v1 := r.Group("/api/v1")
 
 	v1.GET("ping", controllers.Ping)

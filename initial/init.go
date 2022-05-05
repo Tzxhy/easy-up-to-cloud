@@ -9,4 +9,5 @@ import (
 func InitAll() {
 	models.InitSqlite3()
 	utils.MakeSurePathExists(constants.UPLOAD_PATH)
+	InitStatic()
 }
