@@ -33,7 +33,11 @@ func UploadFile(c *gin.Context) {
 	uid, _ := c.Get("uid")
 	did := ""
 	var uploadFileReq UploadFileReq
-	c.Bind(&uploadFileReq)
+	err = c.ShouldBind(&uploadFileReq)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		return
+	}
 	if uploadFileReq.ParentDid != nil {
 		did = *uploadFileReq.ParentDid
 	}
