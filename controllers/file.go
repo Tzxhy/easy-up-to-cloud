@@ -46,7 +46,6 @@ func UploadFile(c *gin.Context) {
 	fileNameHex := hex.EncodeToString([]byte(myFile.Filename)) + filepath.Ext(myFile.Filename)
 	filePath := filepath.Join(constants.UPLOAD_PATH, uid.(string), did, fileNameHex)
 	utils.MakeSurePathExists(filepath.Dir(filePath))
-	log.Print(filePath)
 	err = c.SaveUploadedFile(myFile, filePath)
 	if err != nil {
 		log.Print(err)

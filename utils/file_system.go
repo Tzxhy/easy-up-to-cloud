@@ -2,6 +2,7 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 )
 
 func IsPathExists(pathName string) bool {
@@ -18,5 +19,7 @@ func MakeSurePathExists(dirName string) {
 	if IsPathExists(dirName) {
 		return
 	}
+	parentDir, _ := filepath.Split(dirName)
+	MakeSurePathExists(parentDir)
 	os.Mkdir(dirName, 0777)
 }
