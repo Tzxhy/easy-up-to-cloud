@@ -1,6 +1,10 @@
 {
 	"cSpell.words": [
 		"gonic",
+		"rakyll",
 		"statik"
-	]
+	],
+	"go.toolsEnvVars": {
+		"GOPROXY": "https://goproxy.io,direct"
+	}
 }
