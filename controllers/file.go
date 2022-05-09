@@ -35,7 +35,7 @@ func UploadFile(c *gin.Context) {
 	var uploadFileReq UploadFileReq
 	err = c.ShouldBind(&uploadFileReq)
 	if err != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 		return
 	}
 	if uploadFileReq.ParentDid != nil {
@@ -44,7 +44,7 @@ func UploadFile(c *gin.Context) {
 
 	file := models.GetFileByName(myFile.Filename, uid.(string), did)
 	if file != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILENAME_HAS_BEEN_USED, constants.TIPS_FILENAME_HAS_BEEN_USED, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILENAME_HAS_BEEN_USED, constants.CODE_FILENAME_HAS_BEEN_USED_TIPS.Tip, nil))
 		return
 	}
 	fileNameHex := hex.EncodeToString([]byte(myFile.Filename)) + filepath.Ext(myFile.Filename)
@@ -84,7 +84,7 @@ func DownloadFile(c *gin.Context) {
 		uid, _ := c.Get("uid")
 		fileInfo := models.GetFile(FileIdReq.Fid, uid.(string))
 		if fileInfo == nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.TIPS_FILE_NOT_EXIST, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
 			return
 		}
 		contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
@@ -97,7 +97,7 @@ func DownloadFile(c *gin.Context) {
 		c.File(fileInfo.FileRealPath)
 		return
 	}
-	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 }
 
 // 预览
@@ -107,7 +107,7 @@ func PreviewFile(c *gin.Context) {
 		uid, _ := c.Get("uid")
 		fileInfo := models.GetFile(FileIdReq.Fid, uid.(string))
 		if fileInfo == nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.TIPS_FILE_NOT_EXIST, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
 			return
 		}
 		contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
@@ -120,7 +120,7 @@ func PreviewFile(c *gin.Context) {
 		c.File(fileInfo.FileRealPath)
 		return
 	}
-	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 }
 
 type FileRenameReq struct {
@@ -132,7 +132,7 @@ type FileRenameReq struct {
 func RenameFile(c *gin.Context) {
 	var fileRenameReq FileRenameReq
 	if c.ShouldBind(&fileRenameReq) != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 		return
 	}
 	uid, _ := c.Get("uid")
@@ -140,7 +140,7 @@ func RenameFile(c *gin.Context) {
 	if succ {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_FILE_WITH_ERROR, constants.TIPS_RENAME_FILE_WITH_ERROR, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_FILE_WITH_ERROR, constants.CODE_RENAME_FILE_WITH_ERROR_TIPS.Tip, nil))
 	}
 }
 
@@ -152,7 +152,7 @@ type MoveFileReq struct {
 func MoveFile(c *gin.Context) {
 	var moveFileReq MoveFileReq
 	if c.ShouldBind(&moveFileReq) != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 		return
 	}
 	uid, _ := c.Get("uid")
@@ -160,7 +160,7 @@ func MoveFile(c *gin.Context) {
 	if succ {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_FILE_WITH_ERROR, constants.TIPS_MOVE_FILE_WITH_ERROR, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_FILE_WITH_ERROR, constants.CODE_MOVE_FILE_WITH_ERROR_TIPS.Tip, nil))
 	}
 }
 
@@ -173,7 +173,7 @@ func DeleteFile(c *gin.Context) {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 			return
 		} else if FILE_NOT_FOUND == deleteCode {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.TIPS_FILE_NOT_EXIST, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
 			return
 		}
 		// file := models.GetFile(fileIdReq.Fid, uid.(string))
@@ -199,7 +199,7 @@ func DeleteFile(c *gin.Context) {
 		// }
 
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
 }
 

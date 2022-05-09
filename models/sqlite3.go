@@ -84,17 +84,32 @@ create table if not exists user_group_resource(
 	primary key (rid)
 );
 	`)
-	// rows, err := DB.Query("select * from admin")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer rows.Close()
-
-	// var dir *Dir
-	// for rows.Next() {
-	// 	dir = new(Dir)
-	// 	rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
-	// 	break
-	// }
+	shouldInsertDefaultAdmin()
 	utils.CheckErr(err)
+}
+
+func shouldInsertDefaultAdmin() {
+	rows, err := DB.Query("select * from admin")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	hasRow := false
+	for rows.Next() {
+		hasRow = true
+		break
+	}
+	if !hasRow { // 注入默认
+		uid := utils.GenerateUid()
+		username := "admin"
+		password := utils.GeneratePassword()
+		stmt, _ := DB.Prepare("insert into admin (uid) values(?)")
+		stmt.Exec(uid)
+		AddUserWithId(uid, username, password)
+		DB.Exec("insert into admin")
+		log.Print("插入默认管理员账号：")
+		log.Print("账号：", username)
+		log.Print("密码：", password)
+	}
 }

@@ -14,7 +14,7 @@ func NeedAuth() gin.HandlerFunc {
 
 		token, err := c.Cookie(constants.TOKEN_COOKIE_NAME)
 		if err != nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_NOT_LOGIN, constants.TIPS_NOT_LOGIN, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_NOT_LOGIN_TIPS.Code, constants.CODE_NOT_LOGIN_TIPS.Tip, nil))
 			c.Abort()
 			return
 		}
@@ -22,14 +22,14 @@ func NeedAuth() gin.HandlerFunc {
 		mc, err := utils.ParseToken(token)
 
 		if err != nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_TOKEN_NOT_VALID, constants.TIPS_TOKEN_NOT_VALID, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_TOKEN_NOT_VALID_TIPS.Code, constants.CODE_TOKEN_NOT_VALID_TIPS.Tip, nil))
 			c.Abort()
 			return
 		}
 
 		has := models.GetKey(token)
 		if has == nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_TOKEN_NOT_VALID, constants.TIPS_TOKEN_VALID_WITH_ERROR, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_TOKEN_NOT_VALID_TIPS.Code, constants.TIPS_TOKEN_VALID_WITH_ERROR, nil))
 			c.Abort()
 			return
 		}

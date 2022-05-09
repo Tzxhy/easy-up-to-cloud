@@ -42,6 +42,15 @@ func AddUser(username, password string) (string, error) {
 	return uid, nil
 }
 
+func AddUserWithId(username, password, uid string) (string, error) {
+	stmt, err := DB.Prepare("insert into users (uid, name, password) values(?, ?, ?)")
+	utils.CheckErr(err)
+	_, err = stmt.Exec(uid, username, password)
+	utils.CheckErr(err)
+
+	return uid, nil
+}
+
 func GetUserById(id string) *User {
 	rows, err := DB.Query("select * from users where uid = ?", id)
 	if err != nil {

@@ -26,7 +26,7 @@ func Register(c *gin.Context) {
 
 			alreadyHasUserName := models.HasUsername(loginInfo.Username)
 			if alreadyHasUserName { // 用户名已注册
-				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_USERNAME_IS_REGISTERED, constants.TIPS_USERNAME_IS_REGISTERED, nil))
+				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_USERNAME_IS_REGISTERED_TIPS.Code, constants.CODE_USERNAME_IS_REGISTERED_TIPS.Tip, nil))
 				return
 			}
 			_, err := models.AddUser(loginInfo.Username, loginInfo.Password)
@@ -36,7 +36,7 @@ func Register(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_REGISTER_PARAM_NOT_VALID, constants.TIPS_REGISTER_PARAM_NOT_VALID, nil))
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_REGISTER_PARAM_NOT_VALID_TIPS.Code, constants.CODE_REGISTER_PARAM_NOT_VALID_TIPS.Tip, nil))
 }
 
 // 登录
@@ -57,10 +57,10 @@ func Login(c *gin.Context) {
 				return
 			}
 		}
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_USERNAME_OR_PASSWORD_ERROR, constants.TIPS_USERNAME_OR_PASSWORD_ERROR, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_USERNAME_OR_PASSWORD_ERROR_TIPS.Code, constants.CODE_USERNAME_OR_PASSWORD_ERROR_TIPS.Tip, nil))
 		return
 	}
-	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_LOGIN_PARAM_NOT_VALID, constants.TIPS_LOGIN_PARAM_NOT_VALID, nil))
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_LOGIN_PARAM_NOT_VALID_TIPS.Code, constants.CODE_LOGIN_PARAM_NOT_VALID_TIPS.Tip, nil))
 }
 
 // 登出 能进入这里，说明token验证成功

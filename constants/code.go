@@ -1,6 +1,17 @@
 package constants
 
+type CodeWithTip struct {
+	Code int
+	Tip  string
+}
+
 const CODE_OK = 0
+
+var CODE_OK_TIPS = &CodeWithTip{
+	CODE_OK,
+	"ok",
+}
+
 const CODE_UNHANDLED_ERROR = -1
 
 // 登录相关
@@ -13,6 +24,31 @@ const (
 	CODE_LOGIN_PARAM_NOT_VALID
 )
 
+var CODE_NOT_LOGIN_TIPS = &CodeWithTip{
+	CODE_NOT_LOGIN,
+	"未登录",
+}
+var CODE_TOKEN_NOT_VALID_TIPS = &CodeWithTip{
+	CODE_TOKEN_NOT_VALID,
+	"token无效",
+}
+var CODE_USERNAME_IS_REGISTERED_TIPS = &CodeWithTip{
+	CODE_USERNAME_IS_REGISTERED,
+	"用户名已注册",
+}
+var CODE_USERNAME_OR_PASSWORD_ERROR_TIPS = &CodeWithTip{
+	CODE_USERNAME_OR_PASSWORD_ERROR,
+	"用户名或者密码错误",
+}
+var CODE_REGISTER_PARAM_NOT_VALID_TIPS = &CodeWithTip{
+	CODE_REGISTER_PARAM_NOT_VALID,
+	"注册参数不完整",
+}
+var CODE_LOGIN_PARAM_NOT_VALID_TIPS = &CodeWithTip{
+	CODE_LOGIN_PARAM_NOT_VALID,
+	"登录参数不完整",
+}
+
 // 目录
 const (
 	CODE_CREATE_DIR_PARAM_NOT_VALID = 200_0000 + iota
@@ -20,6 +56,23 @@ const (
 	CODE_MOVE_DIR_WITH_ERROR
 	CODE_RENAME_DIR_WITH_ERROR
 )
+
+var CODE_CREATE_DIR_PARAM_NOT_VALID_TIPS = &CodeWithTip{
+	CODE_CREATE_DIR_PARAM_NOT_VALID,
+	"创建目录参数不完整",
+}
+var CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS = &CodeWithTip{
+	CODE_QUERY_DIR_INFO_WITH_EMPTY_RES,
+	"未找到目录信息",
+}
+var CODE_MOVE_DIR_WITH_ERROR_TIPS = &CodeWithTip{
+	CODE_MOVE_DIR_WITH_ERROR,
+	"移动文件夹失败",
+}
+var CODE_RENAME_DIR_WITH_ERROR_TIPS = &CodeWithTip{
+	CODE_RENAME_DIR_WITH_ERROR,
+	"重命名文件夹失败",
+}
 
 // 文件
 const (
@@ -29,7 +82,29 @@ const (
 	CODE_MOVE_FILE_WITH_ERROR
 )
 
+var CODE_FILENAME_HAS_BEEN_USED_TIPS = &CodeWithTip{
+	CODE_FILENAME_HAS_BEEN_USED,
+	"文件名重复",
+}
+var CODE_FILE_NOT_EXIST_TIPS = &CodeWithTip{
+	CODE_FILE_NOT_EXIST,
+	"文件不存在",
+}
+var CODE_RENAME_FILE_WITH_ERROR_TIPS = &CodeWithTip{
+	CODE_RENAME_FILE_WITH_ERROR,
+	"重命名文件失败",
+}
+var CODE_MOVE_FILE_WITH_ERROR_TIPS = &CodeWithTip{
+	CODE_MOVE_FILE_WITH_ERROR,
+	"移动文件失败",
+}
+
 // 通用
 const (
 	CODE_PARAMS_NOT_VALID = 900_0000 + iota
 )
+
+var CODE_PARAMS_NOT_VALID_TIPS = &CodeWithTip{
+	CODE_PARAMS_NOT_VALID,
+	"参数无效",
+}

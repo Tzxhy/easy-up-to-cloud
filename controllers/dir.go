@@ -33,7 +33,7 @@ func CreateDir(c *gin.Context) {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_UNHANDLED_ERROR, err.Error(), nil))
 		}
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.TIPS_CREATE_DIR_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID_TIPS.Code, constants.CODE_CREATE_DIR_PARAM_NOT_VALID_TIPS.Tip, nil))
 	}
 }
 
@@ -59,10 +59,10 @@ func GetDir(c *gin.Context) {
 				"create_date": dirInfo.CreateDate,
 			}))
 		} else {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES, constants.TIPS_QUERY_DIR_INFO_WITH_EMPTY_RES, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS.Code, constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS.Tip, nil))
 		}
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
 }
 
@@ -89,13 +89,12 @@ func GetDirList(c *gin.Context) {
 				returnFiles = *filesInfo
 			}
 		}
-		// c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES, constants.TIPS_QUERY_DIR_INFO_WITH_EMPTY_RES, nil))
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
 			"dirs":  returnDirs,
 			"files": returnFiles,
 		}))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID_TIPS.Code, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
 }
 
@@ -128,7 +127,7 @@ func SearchFileOrDir(c *gin.Context) {
 			"files": returnFiles,
 		}))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
 }
 
@@ -148,7 +147,7 @@ func DeleteDir(c *gin.Context) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 		return
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 		return
 	}
 }
@@ -205,7 +204,7 @@ type RenameDirReq struct {
 func RenameDir(c *gin.Context) {
 	var renameDirReq RenameDirReq
 	if c.ShouldBind(&renameDirReq) != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 		return
 	}
 	uid, _ := c.Get("uid")
@@ -213,7 +212,7 @@ func RenameDir(c *gin.Context) {
 	if succ {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_DIR_WITH_ERROR, constants.TIPS_RENAME_DIR_WITH_ERROR, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_DIR_WITH_ERROR, constants.CODE_RENAME_DIR_WITH_ERROR_TIPS.Tip, nil))
 	}
 }
 
@@ -232,10 +231,10 @@ func MoveDir(c *gin.Context) {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 			return
 		} else {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_DIR_WITH_ERROR, constants.TIPS_MOVE_DIR_WITH_ERROR, nil))
+			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_DIR_WITH_ERROR, constants.CODE_MOVE_DIR_WITH_ERROR_TIPS.Tip, nil))
 		}
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
 }
 
@@ -259,6 +258,6 @@ func MoveDirsAndFiles(c *gin.Context) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 		return
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
 }

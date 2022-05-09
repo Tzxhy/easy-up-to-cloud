@@ -48,6 +48,24 @@ func GetMyGroups(c *gin.Context) {
 	}))
 }
 
+type GroupCreateDirReq struct {
+	// group_id
+	Gid       string  `json:"gid" form:"gid" binding:"required"`
+	ParentDid *string `json:"parent_did" form:"parent_did"`
+	Name      string  `json:"name" form:"name" binding:"required"`
+}
+
+// 创建文件夹
+func GroupCreateDir(c *gin.Context) {
+	var groupCreateDirReq GroupCreateDirReq
+	if c.ShouldBind(&groupCreateDirReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+
+	// 不存在的gid,pid，则错误
+}
+
 func GroupEmpty(c *gin.Context) {
 
 }
