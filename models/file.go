@@ -105,6 +105,31 @@ func GetFileList(parent_id, owner_id string) *[]File {
 	}
 	return &files
 }
+
+func SearchFileList(owner_id, name string) *[]File {
+	rows, err := DB.Query("select * from files where owner_id = ? and filename like ?", owner_id, "%"+name+"%")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var files []File
+	for rows.Next() {
+		file := new(File)
+		rows.Scan(
+			&file.Fid,
+			&file.OwnerId,
+			&file.Filename,
+			&file.Filesize,
+			&file.ParentDiD,
+			&file.FileRealPath,
+			&file.CreateDate,
+		)
+		files = append(files, *file)
+	}
+	return &files
+}
+
 func DeleteFile(fid string, owner_id string) bool {
 	stmt, err := DB.Prepare("delete from files where fid = ? and owner_id = ?")
 	utils.CheckErr(err)

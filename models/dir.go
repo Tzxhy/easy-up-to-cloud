@@ -83,6 +83,22 @@ func GetDirList(parent_id, owner_id string) *[]Dir {
 	return &dirs
 }
 
+func SearchDirList(owner_id, dirname string) *[]Dir {
+	rows, err := DB.Query("select * from dirs where owner_id = ? and dirname like ?", owner_id, "%"+dirname+"%")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var dirs []Dir
+	for rows.Next() {
+		dir := new(Dir)
+		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
+		dirs = append(dirs, *dir)
+	}
+	return &dirs
+}
+
 func MoveDir(owner_id string, did string, new_parent_did string) bool {
 	if new_parent_did != "" && GetDir(new_parent_did, owner_id) == nil {
 		return false

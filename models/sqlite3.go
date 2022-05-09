@@ -54,6 +54,26 @@ create table if not exists files(
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
 	primary key (owner_id, filename, parent_did)
 );
+-- 用户资源组，同时会作为用户进入资源组页面的顶层文件夹
+create table if not exists user_group(
+	gid varchar(10) NOT NULL, -- 资源组id
+	name text NOT NULL, -- 资源组名称
+	user_ids text, -- 该资源组包含用户id，以分号分割
+	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+	primary key (gid)
+);
+
+-- 用户资源组文件
+create table if not exists user_group_resource(
+	gid varchar(10) NOT NULL, -- 所属资源组id
+	rid varchar(10) NOT NULL, -- 资源id
+	name text NOT NULL, -- 资源名称
+	parent_did text, -- 父目录，顶层时，为空
+	rtype integer NOT NULL, -- 资源类型；1是文件夹；2是文件
+
+	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+	primary key (rid)
+);
 	`)
 	utils.CheckErr(err)
 }

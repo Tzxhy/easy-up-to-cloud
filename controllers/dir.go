@@ -99,9 +99,37 @@ func GetDirList(c *gin.Context) {
 	}
 }
 
+type SearchFileOrDirReq struct {
+	Name string `form:"name" json:"name" binding:"required"`
+}
+
 // 查找目录或者文件
 func SearchFileOrDir(c *gin.Context) {
-
+	var searchInfo SearchFileOrDirReq
+	if c.ShouldBind(&searchInfo) == nil {
+		name := searchInfo.Name
+		uid, _ := c.Get("uid")
+		dirsInfo := models.SearchDirList(uid.(string), name)
+		filesInfo := models.SearchFileList(uid.(string), name)
+		returnDirs := make([]models.Dir, 0)
+		returnFiles := make([]models.File, 0)
+		if dirsInfo != nil {
+			if len(*dirsInfo) > 0 {
+				returnDirs = *dirsInfo
+			}
+		}
+		if filesInfo != nil {
+			if len(*filesInfo) > 0 {
+				returnFiles = *filesInfo
+			}
+		}
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+			"dirs":  returnDirs,
+			"files": returnFiles,
+		}))
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.TIPS_COMMON_PARAM_NOT_VALID, nil))
+	}
 }
 
 type DeleteDirInfo struct {
