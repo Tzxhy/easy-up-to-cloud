@@ -54,6 +54,12 @@ create table if not exists files(
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
 	primary key (owner_id, filename, parent_did)
 );
+
+-- 管理员账号
+create table if not exists admin(
+	uid text primary key
+);
+
 -- 用户资源组，同时会作为用户进入资源组页面的顶层文件夹
 create table if not exists user_group(
 	gid varchar(10) NOT NULL, -- 资源组id
@@ -67,13 +73,28 @@ create table if not exists user_group(
 create table if not exists user_group_resource(
 	gid varchar(10) NOT NULL, -- 所属资源组id
 	rid varchar(10) NOT NULL, -- 资源id
+	fid text, -- 实际文件id，如果是文件的话
+	did text, -- 实际目录id，如果是目录的话
 	name text NOT NULL, -- 资源名称
 	parent_did text, -- 父目录，顶层时，为空
 	rtype integer NOT NULL, -- 资源类型；1是文件夹；2是文件
-
+	author_id text NOT NULL, -- 拥有者
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+	expire_date DATETIME, -- 过期时间，需要加一个定时任务
 	primary key (rid)
 );
 	`)
+	// rows, err := DB.Query("select * from admin")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer rows.Close()
+
+	// var dir *Dir
+	// for rows.Next() {
+	// 	dir = new(Dir)
+	// 	rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
+	// 	break
+	// }
 	utils.CheckErr(err)
 }

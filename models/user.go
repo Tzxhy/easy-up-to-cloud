@@ -71,3 +71,26 @@ func GetUserByNameAndPassword(username, password string) *User {
 	}
 	return user
 }
+
+func GetAdminUser() *[]User {
+	rows, err := DB.Query("select uid from admin")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var admins []string
+	for rows.Next() {
+		admin := ""
+		rows.Scan(&admin)
+		admins = append(admins, admin)
+	}
+	var users []User
+	for _, uid := range admins {
+		user := GetUserById(uid)
+		if user != nil {
+			users = append(users, *user)
+		}
+	}
+	return &users
+}

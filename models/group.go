@@ -27,3 +27,23 @@ func GetResourceGroup(uid string) *[]ResourceGroupItem {
 	}
 	return &items
 }
+
+func GetAllResourceGroup() *[]ResourceGroupItem {
+	rows, err := DB.Query("select gid, name, create_date from user_group")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var items []ResourceGroupItem
+	for rows.Next() {
+		item := new(ResourceGroupItem)
+		rows.Scan(
+			&item.Gid,
+			&item.Name,
+			&item.CreateDate,
+		)
+		items = append(items, *item)
+	}
+	return &items
+}
