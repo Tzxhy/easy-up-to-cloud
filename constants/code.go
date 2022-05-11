@@ -99,6 +99,16 @@ var CODE_MOVE_FILE_WITH_ERROR_TIPS = &CodeWithTip{
 	"移动文件失败",
 }
 
+// 资源组
+const (
+	CODE_GROUP_IS_NOT_ADMIN = 400_0000 + iota
+)
+
+var CODE_GROUP_IS_NOT_ADMIN_TIPS = &CodeWithTip{
+	CODE_GROUP_IS_NOT_ADMIN,
+	"用户无权限",
+}
+
 // 通用
 const (
 	CODE_PARAMS_NOT_VALID = 900_0000 + iota

@@ -10,12 +10,12 @@ import (
 
 type File struct {
 	Fid      string `json:"fid"`
-	OwnerId  string `json:"owner_id"`
+	OwnerId  string
 	Filename string `json:"filename"`
 	Filesize int    `json:"file_size"`
 	// -1 为根目录
 	ParentDiD    string `json:"parent_did"`
-	FileRealPath string `json:"file_real_path"`
+	FileRealPath string
 	CreateDate   string `json:"create_date"`
 }
 
@@ -29,6 +29,7 @@ func AddFile(owner_id string, dir_id string, filename string, file_size uint64, 
 
 	stmt, err := DB.Prepare("insert into files (fid, owner_id, filename, parent_did, file_real_path, file_size) values(?, ?, ?, ?, ?, ?)")
 	utils.CheckErr(err)
+	defer stmt.Close()
 	fid := utils.RandStringBytesMaskImprSrc(8)
 	_, err = stmt.Exec(fid, owner_id, filename, dir_id, file_path, file_size)
 	utils.CheckErr(err)
@@ -133,6 +134,7 @@ func SearchFileList(owner_id, name string) *[]File {
 func DeleteFile(fid string, owner_id string) bool {
 	stmt, err := DB.Prepare("delete from files where fid = ? and owner_id = ?")
 	utils.CheckErr(err)
+	defer stmt.Close()
 	result, err := stmt.Exec(fid, owner_id)
 	utils.CheckErr(err)
 	affectedLines, err := result.RowsAffected()
@@ -142,6 +144,7 @@ func DeleteFile(fid string, owner_id string) bool {
 func RenameFile(owner_id, fid, name string) bool {
 	stmt, err := DB.Prepare("update files set filename = ? where owner_id = ? and fid = ?")
 	utils.CheckErr(err)
+	defer stmt.Close()
 	result, err := stmt.Exec(name, owner_id, fid)
 	utils.CheckErr(err)
 	affectedLines, err := result.RowsAffected()
@@ -154,6 +157,7 @@ func MoveFile(owner_id, fid, new_parent_did string) bool {
 	}
 	stmt, err := DB.Prepare("update files set parent_did = ? where owner_id = ? and fid = ?")
 	utils.CheckErr(err)
+	defer stmt.Close()
 	result, err := stmt.Exec(new_parent_did, owner_id, fid)
 	utils.CheckErr(err)
 	affectedLines, err := result.RowsAffected()

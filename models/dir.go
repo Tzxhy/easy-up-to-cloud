@@ -10,7 +10,7 @@ import (
 
 type Dir struct {
 	Did     string `json:"did"`
-	OwnerId string `json:"owner_id"`
+	OwnerId string
 	Dirname string `json:"dirname"`
 	// -1 为根目录
 	ParentDiD  string `json:"parent_did"`
@@ -30,6 +30,7 @@ func AddDir(owner_id string, dirname string, parent_did string) (string, error) 
 	}
 	stmt, err := DB.Prepare("insert into dirs (did, owner_id, dirname, parent_did) values(?, ?, ?, ?)")
 	utils.CheckErr(err)
+	defer stmt.Close()
 	did := utils.RandStringBytesMaskImprSrc(5)
 	_, err = stmt.Exec(did, owner_id, dirname, parent_did)
 	utils.CheckErr(err)

@@ -78,10 +78,10 @@ create table if not exists user_group_resource(
 	name text NOT NULL, -- 资源名称
 	parent_did text, -- 父目录，顶层时，为空
 	rtype integer NOT NULL, -- 资源类型；1是文件夹；2是文件
-	author_id text NOT NULL, -- 拥有者
+	uid text NOT NULL, -- 拥有者
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
 	expire_date DATETIME, -- 过期时间，需要加一个定时任务
-	primary key (rid)
+	primary key (gid, parent_did, name)
 );
 	`)
 	shouldInsertDefaultAdmin()
