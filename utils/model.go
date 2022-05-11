@@ -4,6 +4,10 @@ func GenerateUid() string {
 	return RandStringBytesMaskImprSrc(5)
 }
 
+func GenerateGid() string {
+	return RandStringBytesMaskImprSrc(5)
+}
+
 func GenerateRid() string {
 	return RandStringBytesMaskImprSrc(8)
 }

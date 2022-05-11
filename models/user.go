@@ -42,7 +42,7 @@ func AddUser(username, password string) (string, error) {
 	return uid, nil
 }
 
-func AddUserWithId(username, password, uid string) (string, error) {
+func AddUserWithId(uid, username, password string) (string, error) {
 	stmt, err := DB.Prepare("insert into users (uid, name, password) values(?, ?, ?)")
 	utils.CheckErr(err)
 	_, err = stmt.Exec(uid, username, password)
@@ -52,15 +52,12 @@ func AddUserWithId(username, password, uid string) (string, error) {
 }
 
 func GetUserById(id string) *User {
-	rows, err := DB.Query("select * from users where uid = ?", id)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
+	row := DB.QueryRow("select uid, name from users where uid = ?", id)
 
 	var user *User = new(User)
-	for rows.Next() {
-		rows.Scan(&user.Uid, &user.Username, &user.Password)
+	err := row.Scan(&user.Uid, &user.Username)
+	if err != nil {
+		return nil
 	}
 	return user
 }
@@ -94,6 +91,7 @@ func GetAdminUser() *[]User {
 		rows.Scan(&admin)
 		admins = append(admins, admin)
 	}
+	log.Print("admins: ", admins)
 	var users []User
 	for _, uid := range admins {
 		user := GetUserById(uid)
@@ -101,5 +99,6 @@ func GetAdminUser() *[]User {
 			users = append(users, *user)
 		}
 	}
+	log.Print("users: ", users)
 	return &users
 }

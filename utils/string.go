@@ -30,3 +30,10 @@ func RandStringBytesMaskImprSrc(n int) string {
 	}
 	return string(b)
 }
+
+func GetStringOrEmptyFromPtr(ptr *string) string {
+	if ptr != nil {
+		return *ptr
+	}
+	return ""
+}

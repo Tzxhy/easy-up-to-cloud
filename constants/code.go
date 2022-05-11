@@ -102,11 +102,16 @@ var CODE_MOVE_FILE_WITH_ERROR_TIPS = &CodeWithTip{
 // 资源组
 const (
 	CODE_GROUP_IS_NOT_ADMIN = 400_0000 + iota
+	CODE_GROUP_CREATE_GROUP_HAS
 )
 
 var CODE_GROUP_IS_NOT_ADMIN_TIPS = &CodeWithTip{
 	CODE_GROUP_IS_NOT_ADMIN,
 	"用户无权限",
+}
+var CODE_GROUP_CREATE_GROUP_HAS_TIPS = &CodeWithTip{
+	CODE_GROUP_CREATE_GROUP_HAS,
+	"已有同名资源组",
 }
 
 // 通用

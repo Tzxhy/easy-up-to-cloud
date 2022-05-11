@@ -39,7 +39,7 @@ create table if not exists dirs(
 	did text,
 	owner_id text not null,
 	dirname text not null,
-	parent_did text,
+	parent_did text DEFAULT '',
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
 	primary key (owner_id, dirname, parent_did)
 );
@@ -49,7 +49,7 @@ create table if not exists files(
 	owner_id text not null,
 	filename text not null,
 	file_size integer not null,
-	parent_did text,
+	parent_did text DEFAULT '',
 	file_real_path text not null,
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
 	primary key (owner_id, filename, parent_did)
@@ -64,19 +64,19 @@ create table if not exists admin(
 create table if not exists user_group(
 	gid varchar(10) NOT NULL, -- 资源组id
 	name text NOT NULL, -- 资源组名称
-	user_ids text, -- 该资源组包含用户id，以分号分割
+	user_ids text DEFAULT '', -- 该资源组包含用户id，以分号分割
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-	primary key (gid)
+	primary key (name)
 );
 
 -- 用户资源组文件
 create table if not exists user_group_resource(
 	gid varchar(10) NOT NULL, -- 所属资源组id
 	rid varchar(10) NOT NULL, -- 资源id
-	fid text, -- 实际文件id，如果是文件的话
-	did text, -- 实际目录id，如果是目录的话
+	fid text DEFAULT '', -- 实际文件id，如果是文件的话
+	did text DEFAULT '', -- 实际目录id，如果是目录的话
 	name text NOT NULL, -- 资源名称
-	parent_did text, -- 父目录，顶层时，为空
+	parent_did text DEFAULT '', -- 父目录，顶层时，为空
 	rtype integer NOT NULL, -- 资源类型；1是文件夹；2是文件
 	uid text NOT NULL, -- 拥有者
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -105,11 +105,11 @@ func shouldInsertDefaultAdmin() {
 		username := "admin"
 		password := utils.GeneratePassword()
 		stmt, _ := DB.Prepare("insert into admin (uid) values(?)")
+		defer stmt.Close()
 		stmt.Exec(uid)
 		AddUserWithId(uid, username, password)
-		DB.Exec("insert into admin")
 		log.Print("插入默认管理员账号：")
-		log.Print("账号：", username)
-		log.Print("密码：", password)
+		log.Print("\n账号：", username)
+		log.Print("\n密码：", password)
 	}
 }
