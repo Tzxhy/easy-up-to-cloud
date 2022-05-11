@@ -70,7 +70,7 @@ func GetGroupDir(c *gin.Context) {
 		utils.ReturnParamNotValid(c)
 		return
 	}
-
+	// TODO item 增加 是否可以操作该item的字段，用于展示相关按钮
 	list := models.GetGroupDir(getGroupDirReq.Gid, utils.GetStringOrEmptyFromPtr(getGroupDirReq.DirId))
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
 		"list": list,
@@ -93,7 +93,7 @@ func GroupCreate(c *gin.Context) {
 		return
 	}
 
-	gid, err := models.CreateGroup(groupCreateReq.Name)
+	gid, err := models.CreateGroup(groupCreateReq.Name, models.GroupTypeVisibleByUid)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_CREATE_GROUP_HAS_TIPS.Code, constants.CODE_GROUP_CREATE_GROUP_HAS_TIPS.Tip, nil))
 		return
@@ -124,7 +124,11 @@ func GroupCreateDir(c *gin.Context) {
 	}
 
 	pid := utils.GetStringOrEmptyFromPtr(groupCreateDirReq.ParentDid)
-
+	hasGid := models.GetGroupById(groupCreateDirReq.Gid)
+	if hasGid == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_NOT_FOUND_TIPS.Code, constants.CODE_GROUP_NOT_FOUND_TIPS.Tip, nil))
+		return
+	}
 	// 不存在的gid,pid，则错误
 	rid, err := models.CreateGroupDir(groupCreateDirReq.Gid, pid, groupCreateDirReq.Name, uid.(string))
 	if err != nil {
@@ -162,6 +166,7 @@ func SetGroupAccount(c *gin.Context) {
 		models.DeleteOrInsertAdminAccount(uid.(string), isAdmin)
 	}
 	// 设置账户资源组
+	// TODO 需要全资源组更新
 	groups := models.GetAllResourceGroup()
 	var filteredGroups []models.ResourceGroupItem
 	for _, group := range *groups {
@@ -203,6 +208,11 @@ func ShareToGroup(c *gin.Context) {
 	}
 
 	uid, _ := c.Get("uid")
+	hasGid := models.GetGroupByIdAndUid(shareToGroupReq.Gid, uid.(string))
+	if hasGid == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_NOT_FOUND_TIPS.Code, constants.CODE_GROUP_NOT_FOUND_TIPS.Tip, nil))
+		return
+	}
 
 	rid, err := models.ShareDirOrFileToGroup(
 		shareToGroupReq.Gid,

@@ -66,6 +66,7 @@ create table if not exists user_group(
 	name text NOT NULL, -- 资源组名称
 	user_ids text DEFAULT '', -- 该资源组包含用户id，以分号分割
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+	group_type INTEGER DEFAULT 0 not null, -- 资源组类型；0 为公共可访问，1为user_ids可访问，其他未定义
 	primary key (name)
 );
 
@@ -85,7 +86,24 @@ create table if not exists user_group_resource(
 );
 	`)
 	shouldInsertDefaultAdmin()
+	shouldInsertDefaultGroup()
 	utils.CheckErr(err)
+}
+func shouldInsertDefaultGroup() {
+	rows, err := DB.Query("select * from user_group")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	hasRow := false
+	for rows.Next() {
+		hasRow = true
+		break
+	}
+	if !hasRow { // 注入默认
+		CreateGroup("默认", GroupTypeCommon)
+	}
 }
 
 func shouldInsertDefaultAdmin() {
