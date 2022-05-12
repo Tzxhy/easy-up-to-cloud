@@ -164,3 +164,22 @@ func MoveFile(owner_id, fid, new_parent_did string) bool {
 	utils.CheckErr(err)
 	return affectedLines == 1
 }
+func GetFileById(fid string) *File {
+	row := DB.QueryRow("select * from files where fid = ?", fid)
+
+	file := new(File)
+	err := row.Scan(
+		&file.Fid,
+		&file.OwnerId,
+		&file.Filename,
+		&file.Filesize,
+		&file.ParentDiD,
+		&file.FileRealPath,
+		&file.CreateDate,
+	)
+
+	if err != nil {
+		return nil
+	}
+	return file
+}

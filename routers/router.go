@@ -62,6 +62,8 @@ func InitRouter() *gin.Engine {
 		group.GET("search", controllers.SearchGroupResource)        // 搜索
 		group.GET("download", controllers.DownloadGroupResource)    // 下载文件
 		group.GET("preview", controllers.PreviewGroupResource)      // 资源预览
+		group.GET("user-config", controllers.GroupUserConfig)       // 资源预览
+
 	}
 
 	return r

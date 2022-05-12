@@ -12,6 +12,23 @@ import (
 
 var DB *sql.DB
 
+var AdminAccount = make([]string, 0)
+
+var GroupResource = make([]ResourceGroupItem, 0)
+
+func GetAllGroupResource() *[]ResourceGroupItem {
+	return &GroupResource
+}
+func GetCommonGroupResource() *[]ResourceGroupItem {
+	var groupResource = make([]ResourceGroupItem, 0)
+	for _, item := range GroupResource {
+		if item.GroupType == GroupTypeCommon {
+			groupResource = append(groupResource, item)
+		}
+	}
+	return &groupResource
+}
+
 func InitSqlite3() {
 	if DB != nil {
 		return
@@ -81,12 +98,13 @@ create table if not exists user_group_resource(
 	rtype integer NOT NULL, -- 资源类型；1是文件夹；2是文件
 	uid text NOT NULL, -- 拥有者
 	create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-	expire_date DATETIME, -- 过期时间，需要加一个定时任务
+	expire_date DATETIME default '', -- 过期时间，需要加一个定时任务
 	primary key (gid, parent_did, name)
 );
 	`)
 	shouldInsertDefaultAdmin()
 	shouldInsertDefaultGroup()
+	refreshLocalKeyCache()
 	utils.CheckErr(err)
 }
 func shouldInsertDefaultGroup() {
@@ -130,4 +148,18 @@ func shouldInsertDefaultAdmin() {
 		log.Print("\n账号：", username)
 		log.Print("\n密码：", password)
 	}
+}
+
+func refreshLocalKeyCache() {
+	rows, _ := DB.Query("select * from admin")
+	defer rows.Close()
+	var accounts []string
+	for rows.Next() {
+		account := ""
+		rows.Scan(&account)
+		accounts = append(accounts, account)
+	}
+	AdminAccount = accounts
+
+	GroupResource = *GetAllResourceGroup()
 }

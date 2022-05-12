@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"gitee.com/tzxhy/web/constants"
@@ -41,6 +42,25 @@ func checkIsAdmin(c *gin.Context, needRejectWhenNot bool) bool {
 	return isAdmin
 }
 
+func canReadGroupResource(uid, gid string) bool {
+	commonGroup := models.GetCommonGroupResource()
+	isCommon := utils.HasByFunc(*commonGroup, func(m models.ResourceGroupItem) bool {
+		return m.Gid == gid
+	})
+	if isCommon {
+		return true
+	}
+	allGroup := models.GetAllGroupResource()
+	item := utils.Find(allGroup, func(m models.ResourceGroupItem) bool {
+		return m.Gid == gid
+	})
+	if item == nil {
+		log.Fatal("item is nil: ", gid)
+		return false
+	}
+	return utils.Has(item.UserIds, uid)
+}
+
 // 获取资源组列表
 func GetMyGroups(c *gin.Context) {
 	uid, _ := c.Get("uid")
@@ -59,7 +79,6 @@ func GetMyGroups(c *gin.Context) {
 }
 
 type GetGroupDirReq struct {
-	// Gid   string  `json:"gid" form:"gid" binding:"required"`
 	DirId string `json:"dir_id" form:"dir_id"`
 }
 
@@ -82,36 +101,55 @@ func GetGroupDir(c *gin.Context) {
 	}
 	uid, _ := c.Get("uid")
 	uidStr := uid.(string)
-	// 检查该group可见性
-	// if !checkGroupIsVisibleToUser(uidStr, getGroupDirReq.Gid) {
-	// 	c.JSON(http.StatusOK, utils.ReturnJSON(
-	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
-	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
-	// 		nil,
-	// 	))
-	// 	return
-	// }
 
-	// if getGroupDirReq.DirId == "" { // 等于空，那么请求可见资源组
-	// 	groups := models.GetResourceGroup(uidStr)
-	// 	var newList = make([]ResourceGroupDirItemWithOp, 0)
-	// 	for _, item := range *groups {
-	// 		opItem := &ResourceGroupDirItemWithOp{
-	// 			item,
-	// 			item.Uid == uidStr,
-	// 		}
-	// 		newList = append(newList, *opItem)
-	// 	}
-	// 	return
-	// }
-	list := models.GetGroupDir(getGroupDirReq.DirId)
-	var newList = make([]ResourceGroupDirItemWithOp, 0)
-	for _, item := range *list {
-		opItem := &ResourceGroupDirItemWithOp{
-			item,
-			item.Uid == uidStr,
+	if getGroupDirReq.DirId != "" {
+		originResource := models.GetGroupResourceById(getGroupDirReq.DirId)
+		if originResource == nil {
+			c.JSON(http.StatusOK, utils.ReturnJSON(
+				constants.CODE_GROUP_GET_DIR_WITH_ERROR_PARENT_TIPS.Code,
+				constants.CODE_GROUP_GET_DIR_WITH_ERROR_PARENT_TIPS.Tip,
+				nil,
+			))
+			return
 		}
-		newList = append(newList, *opItem)
+
+		if originResource.RType != models.GROUP_RESOURCE_DIR {
+			c.JSON(http.StatusOK, utils.ReturnJSON(
+				constants.CODE_GROUP_GET_DIR_WITH_ERROR_PARENT_FILE_TIPS.Code,
+				constants.CODE_GROUP_GET_DIR_WITH_ERROR_PARENT_FILE_TIPS.Tip,
+				nil,
+			))
+			return
+		}
+	}
+
+	list := models.GetGroupDir(getGroupDirReq.DirId)
+	commonGroup := models.GetCommonGroupResource()
+	allGroup := models.GetAllGroupResource()
+	var newList = make([]ResourceGroupDirItemWithOp, 0)
+	currentIsAdmin := utils.Has(models.AdminAccount, uidStr)
+	for _, item := range *list {
+		isCommon := false
+		isOwnerUser := false
+		if !currentIsAdmin {
+			isCommon = utils.HasByFunc(*commonGroup, func(m models.ResourceGroupItem) bool {
+				return m.Gid == item.Gid
+			})
+			gidItem := utils.Find(allGroup, func(m models.ResourceGroupItem) bool {
+				return m.Gid == item.Gid
+			})
+			if gidItem == nil {
+				log.Fatal(gidItem)
+			}
+			isOwnerUser = utils.Has(gidItem.UserIds, uidStr)
+		}
+		if currentIsAdmin || isCommon || isOwnerUser {
+			opItem := &ResourceGroupDirItemWithOp{
+				item,
+				currentIsAdmin || item.Uid == uidStr,
+			}
+			newList = append(newList, *opItem)
+		}
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
 		"list": newList,
@@ -146,10 +184,8 @@ func GroupCreate(c *gin.Context) {
 }
 
 type GroupCreateDirReq struct {
-	// group_id
-	Gid       string  `json:"gid" form:"gid" binding:"required"`
-	ParentDid *string `json:"parent_did" form:"parent_did"`
-	Name      string  `json:"name" form:"name" binding:"required"`
+	ParentDid string `json:"parent_did" form:"parent_did" binding:"required"`
+	Name      string `json:"name" form:"name" binding:"required"`
 }
 
 // 创建文件夹
@@ -164,21 +200,42 @@ func GroupCreateDir(c *gin.Context) {
 		utils.ReturnParamNotValid(c)
 		return
 	}
-	// 检查该group可见性
-	if !checkGroupIsVisibleToUser(uid.(string), groupCreateDirReq.Gid) {
+	// // 检查该group可见性
+	// if !checkGroupIsVisibleToUser(uid.(string), groupCreateDirReq.Gid) {
+	// 	c.JSON(http.StatusOK, utils.ReturnJSON(
+	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
+	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
+	// 		nil,
+	// 	))
+	// 	return
+	// }
+
+	pid := groupCreateDirReq.ParentDid
+	originResource := models.GetGroupResourceById(groupCreateDirReq.ParentDid)
+	if originResource == nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(
-			constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
-			constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
+			constants.CODE_GROUP_CREATE_DIR_WITH_ERROR_PARENT_TIPS.Code,
+			constants.CODE_GROUP_CREATE_DIR_WITH_ERROR_PARENT_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+	if originResource.RType != models.GROUP_RESOURCE_DIR {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_CREATE_DIR_WITH_ERROR_PARENT_FILE_TIPS.Code,
+			constants.CODE_GROUP_CREATE_DIR_WITH_ERROR_PARENT_FILE_TIPS.Tip,
 			nil,
 		))
 		return
 	}
 
-	pid := utils.GetStringOrEmptyFromPtr(groupCreateDirReq.ParentDid)
-	// 不存在的gid,pid，则错误
-	rid, err := models.CreateGroupDir(groupCreateDirReq.Gid, pid, groupCreateDirReq.Name, uid.(string))
+	rid, err := models.CreateGroupDir(originResource.Gid, pid, groupCreateDirReq.Name, uid.(string))
 	if err != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_UNHANDLED_ERROR, err.Error(), nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_CREATE_DIR_HAS_NAME_TIPS.Code,
+			constants.CODE_GROUP_CREATE_DIR_HAS_NAME_TIPS.Tip,
+			nil,
+		))
 		return
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK_TIPS.Code, "", &gin.H{
@@ -234,18 +291,18 @@ func SetGroupAccount(c *gin.Context) {
 			successNum = successNum + 1
 		}
 	}
+
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK_TIPS.Code, "", &gin.H{
 		"successNum": successNum,
 	}))
 }
 
 type ShareToGroupReq struct {
-	Gid string `json:"gid" form:"gid" binding:"required"`
 	// Fid 与 Did 二选一
 	Fid        string `json:"fid" form:"fid"`
 	Did        string `json:"did" form:"did"`
 	Name       string `json:"name" form:"name" binding:"required"`
-	ParentDid  string `json:"parent_did" form:"parent_did"`
+	ParentDid  string `json:"parent_did" form:"parent_did" binding:"required"`
 	RType      uint8  `json:"r_type" form:"r_type" binding:"required"`
 	ExpireDate string `json:"expire_date" form:"expire_date"`
 }
@@ -260,13 +317,18 @@ func ShareToGroup(c *gin.Context) {
 
 	uid, _ := c.Get("uid")
 
-	if !checkGroupIsVisibleToUser(uid.(string), shareToGroupReq.Gid) {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_NOT_FOUND_TIPS.Code, constants.CODE_GROUP_NOT_FOUND_TIPS.Tip, nil))
+	resourceItem := models.GetGroupResourceById(shareToGroupReq.ParentDid)
+	if resourceItem == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
 		return
 	}
 
 	rid, err := models.ShareDirOrFileToGroup(
-		shareToGroupReq.Gid,
+		resourceItem.Gid,
 		shareToGroupReq.Fid,
 		shareToGroupReq.Did,
 		shareToGroupReq.Name,
@@ -396,11 +458,10 @@ var handleOperationGroupResourceDispatch = &HandleOperationGroupResourceDispatch
 }
 
 type SearchGroupResourceReq struct {
-	Gid  string `json:"gid" form:"gid" binding:"required"`
 	Name string `json:"name" form:"name" binding:"required"`
 }
 
-// 搜索已经分享到资源组的资源
+// 搜索
 func SearchGroupResource(c *gin.Context) {
 	var searchGroupResourceReq SearchGroupResourceReq
 	if c.ShouldBindQuery(&searchGroupResourceReq) != nil {
@@ -410,14 +471,35 @@ func SearchGroupResource(c *gin.Context) {
 	uid, _ := c.Get("uid")
 	uidStr := uid.(string)
 
-	list := models.SearchResourceByName(searchGroupResourceReq.Gid, searchGroupResourceReq.Name)
+	list := models.SearchResourceByName(searchGroupResourceReq.Name)
+
 	var newList = make([]ResourceGroupDirItemWithOp, 0)
+	commonGroup := models.GetCommonGroupResource()
+	currentIsAdmin := utils.Has(models.AdminAccount, uidStr)
+	allGroup := models.GetAllGroupResource()
 	for _, item := range *list {
-		opItem := &ResourceGroupDirItemWithOp{
-			item,
-			item.Uid == uidStr,
+		isCommon := false
+		isOwnerUser := false
+		if !currentIsAdmin {
+			isCommon = utils.HasByFunc(*commonGroup, func(m models.ResourceGroupItem) bool {
+				return m.Gid == item.Gid
+			})
+			gidItem := utils.Find(allGroup, func(m models.ResourceGroupItem) bool {
+				return m.Gid == item.Gid
+			})
+			if gidItem == nil {
+				log.Fatal(gidItem)
+			}
+			isOwnerUser = utils.Has(gidItem.UserIds, uidStr)
 		}
-		newList = append(newList, *opItem)
+
+		if currentIsAdmin || isCommon || isOwnerUser {
+			opItem := &ResourceGroupDirItemWithOp{
+				item,
+				item.Uid == uidStr,
+			}
+			newList = append(newList, *opItem)
+		}
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
 		"list": newList,
@@ -425,7 +507,7 @@ func SearchGroupResource(c *gin.Context) {
 
 }
 
-// 操作已经分享到资源组的资源
+// 预览
 func PreviewGroupResource(c *gin.Context) {
 	var downloadGroupResourceReq DownloadGroupResourceReq
 	if c.ShouldBindQuery(&downloadGroupResourceReq) != nil {
@@ -441,14 +523,35 @@ func PreviewGroupResource(c *gin.Context) {
 		))
 		return
 	}
-	previewFile(resourceItem.Fid, resourceItem.Uid, c)
+
+	uid, _ := c.Get("uid")
+	currentIsAdmin := utils.Has(models.AdminAccount, uid.(string))
+
+	if !currentIsAdmin && !canReadGroupResource(uid.(string), resourceItem.Gid) {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_PREVIEW_FILE_NO_PERMISSION_TIPS.Code,
+			constants.CODE_GROUP_PREVIEW_FILE_NO_PERMISSION_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+	file := models.GetFileById(resourceItem.Fid)
+	if file == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+	previewFile(resourceItem.Fid, file.OwnerId, c)
 }
 
 type DownloadGroupResourceReq struct {
 	Rid string `form:"rid" json:"rid" binding:"required"`
 }
 
-// 操作已经分享到资源组的资源
+// 下载
 func DownloadGroupResource(c *gin.Context) {
 	var downloadGroupResourceReq DownloadGroupResourceReq
 	if c.ShouldBindQuery(&downloadGroupResourceReq) != nil {
@@ -465,5 +568,31 @@ func DownloadGroupResource(c *gin.Context) {
 		return
 	}
 
-	downloadFile(resourceItem.Fid, resourceItem.Uid, c)
+	uid, _ := c.Get("uid")
+	currentIsAdmin := utils.Has(models.AdminAccount, uid.(string))
+	log.Print("models.AdminAccount: ", models.AdminAccount)
+	log.Print("uid: ", uid)
+
+	if !currentIsAdmin && !canReadGroupResource(uid.(string), resourceItem.Gid) {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_PREVIEW_FILE_NO_PERMISSION_TIPS.Code,
+			constants.CODE_GROUP_PREVIEW_FILE_NO_PERMISSION_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+	file := models.GetFileById(resourceItem.Fid)
+	if file == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+	downloadFile(resourceItem.Fid, file.OwnerId, c)
+}
+
+func GroupUserConfig(c *gin.Context) {
+
 }

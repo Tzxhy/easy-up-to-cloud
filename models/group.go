@@ -121,7 +121,7 @@ func GetGroupResourceById(rid string) *ResourceGroupDirItem {
 }
 
 func GetAllResourceGroup() *[]ResourceGroupItem {
-	rows, err := DB.Query("select gid, name, user_ids, create_date from user_group")
+	rows, err := DB.Query("select gid, name, user_ids, create_date, group_type from user_group")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -136,6 +136,7 @@ func GetAllResourceGroup() *[]ResourceGroupItem {
 			&item.Name,
 			&userIds,
 			&item.CreateDate,
+			&item.GroupType,
 		)
 		item.UserIds = strings.Split(userIds, ";")
 		items = append(items, *item)
@@ -184,6 +185,7 @@ func SetUidResourceGroup(gid string, user_ids []string) (succ bool, err error) {
 		return false, err
 	}
 	rows, _ := ret.RowsAffected()
+	refreshLocalKeyCache()
 	return rows == 1, nil
 }
 func CreateGroup(name string, groupType uint8) (gid string, err error) {
@@ -194,6 +196,7 @@ func CreateGroup(name string, groupType uint8) (gid string, err error) {
 	if err != nil {
 		return "", err
 	}
+	refreshLocalKeyCache()
 	CreateGroupDir(gid, "", name, "")
 	return gid, nil
 }
@@ -237,6 +240,7 @@ func DeleteOrInsertAdminAccount(uid string, isAdmin bool) bool {
 		if err != nil {
 			return false
 		}
+		AdminAccount = append(AdminAccount, uid)
 	}
 
 	row, _ := result.RowsAffected()
@@ -259,8 +263,8 @@ func ShareDirOrFileToGroup(gid, fid, did, name, uid, parent_did, expire_date str
 	return rid, nil
 }
 
-func SearchResourceByName(gid, name string) *[]ResourceGroupDirItem {
-	rows, err := DB.Query("select * from user_group_resource where gid = ? and name like ?", gid, "%"+name+"%")
+func SearchResourceByName(name string) *[]ResourceGroupDirItem {
+	rows, err := DB.Query("select * from user_group_resource where name like ?", "%"+name+"%")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -56,3 +56,13 @@ func Filter[T interface{}](slice *[]T, filter func(T) bool) *[]T {
 	}
 	return &newSlice
 }
+
+func Find[T interface{}](slice *[]T, find func(T) bool) *T {
+	for _, item := range *slice {
+		ok := find(item)
+		if ok {
+			return &item
+		}
+	}
+	return nil
+}
