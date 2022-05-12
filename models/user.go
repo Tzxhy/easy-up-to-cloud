@@ -35,7 +35,7 @@ func HasUsername(username string) bool {
 func AddUser(username, password string) (string, error) {
 	stmt, err := DB.Prepare("insert into users (uid, name, password) values(?, ?, ?)")
 	utils.CheckErr(err)
-	uid := utils.RandStringBytesMaskImprSrc(5)
+	uid := utils.GenerateUid()
 	_, err = stmt.Exec(uid, username, password)
 	utils.CheckErr(err)
 

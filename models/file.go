@@ -10,12 +10,12 @@ import (
 
 type File struct {
 	Fid      string `json:"fid"`
-	OwnerId  string
+	OwnerId  string `json:"-"`
 	Filename string `json:"filename"`
 	Filesize int    `json:"file_size"`
 	// -1 为根目录
 	ParentDiD    string `json:"parent_did"`
-	FileRealPath string
+	FileRealPath string `json:"-"`
 	CreateDate   string `json:"create_date"`
 }
 
@@ -30,7 +30,7 @@ func AddFile(owner_id string, dir_id string, filename string, file_size uint64, 
 	stmt, err := DB.Prepare("insert into files (fid, owner_id, filename, parent_did, file_real_path, file_size) values(?, ?, ?, ?, ?, ?)")
 	utils.CheckErr(err)
 	defer stmt.Close()
-	fid := utils.RandStringBytesMaskImprSrc(8)
+	fid := utils.GenerateFid()
 	_, err = stmt.Exec(fid, owner_id, filename, dir_id, file_path, file_size)
 	utils.CheckErr(err)
 	return fid, nil

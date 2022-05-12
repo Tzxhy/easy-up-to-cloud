@@ -59,8 +59,18 @@ func GetMyGroups(c *gin.Context) {
 }
 
 type GetGroupDirReq struct {
-	Gid   string  `json:"gid" form:"gid" binding:"required"`
-	DirId *string `json:"dir_id" form:"dir_id"`
+	// Gid   string  `json:"gid" form:"gid" binding:"required"`
+	DirId string `json:"dir_id" form:"dir_id"`
+}
+
+func checkGroupIsVisibleToUser(uid, gid string) bool {
+	// 检查该group可见性
+	return models.GetGroupByIdAndUid(gid, uid) != nil
+}
+
+type ResourceGroupDirItemWithOp struct {
+	models.ResourceGroupDirItem
+	CanOper bool `json:"can_oper"`
 }
 
 // 获取目录信息
@@ -70,10 +80,41 @@ func GetGroupDir(c *gin.Context) {
 		utils.ReturnParamNotValid(c)
 		return
 	}
-	// TODO item 增加 是否可以操作该item的字段，用于展示相关按钮
-	list := models.GetGroupDir(getGroupDirReq.Gid, utils.GetStringOrEmptyFromPtr(getGroupDirReq.DirId))
+	uid, _ := c.Get("uid")
+	uidStr := uid.(string)
+	// 检查该group可见性
+	// if !checkGroupIsVisibleToUser(uidStr, getGroupDirReq.Gid) {
+	// 	c.JSON(http.StatusOK, utils.ReturnJSON(
+	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
+	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
+	// 		nil,
+	// 	))
+	// 	return
+	// }
+
+	// if getGroupDirReq.DirId == "" { // 等于空，那么请求可见资源组
+	// 	groups := models.GetResourceGroup(uidStr)
+	// 	var newList = make([]ResourceGroupDirItemWithOp, 0)
+	// 	for _, item := range *groups {
+	// 		opItem := &ResourceGroupDirItemWithOp{
+	// 			item,
+	// 			item.Uid == uidStr,
+	// 		}
+	// 		newList = append(newList, *opItem)
+	// 	}
+	// 	return
+	// }
+	list := models.GetGroupDir(getGroupDirReq.DirId)
+	var newList = make([]ResourceGroupDirItemWithOp, 0)
+	for _, item := range *list {
+		opItem := &ResourceGroupDirItemWithOp{
+			item,
+			item.Uid == uidStr,
+		}
+		newList = append(newList, *opItem)
+	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
-		"list": list,
+		"list": newList,
 	}))
 }
 
@@ -83,6 +124,7 @@ type GroupCreateReq struct {
 
 // 创建资源组
 func GroupCreate(c *gin.Context) {
+	// 只有管理员可以创建
 	if !checkIsAdmin(c, true) {
 		return
 	}
@@ -122,13 +164,17 @@ func GroupCreateDir(c *gin.Context) {
 		utils.ReturnParamNotValid(c)
 		return
 	}
-
-	pid := utils.GetStringOrEmptyFromPtr(groupCreateDirReq.ParentDid)
-	hasGid := models.GetGroupById(groupCreateDirReq.Gid)
-	if hasGid == nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_NOT_FOUND_TIPS.Code, constants.CODE_GROUP_NOT_FOUND_TIPS.Tip, nil))
+	// 检查该group可见性
+	if !checkGroupIsVisibleToUser(uid.(string), groupCreateDirReq.Gid) {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
 		return
 	}
+
+	pid := utils.GetStringOrEmptyFromPtr(groupCreateDirReq.ParentDid)
 	// 不存在的gid,pid，则错误
 	rid, err := models.CreateGroupDir(groupCreateDirReq.Gid, pid, groupCreateDirReq.Name, uid.(string))
 	if err != nil {
@@ -166,25 +212,30 @@ func SetGroupAccount(c *gin.Context) {
 		models.DeleteOrInsertAdminAccount(uid.(string), isAdmin)
 	}
 	// 设置账户资源组
-	// TODO 需要全资源组更新
 	groups := models.GetAllResourceGroup()
-	var filteredGroups []models.ResourceGroupItem
+
+	successNum := 0
 	for _, group := range *groups {
-		if utils.Has(setGroupAccountReq.Groups, group.Gid) {
-			filteredGroups = append(filteredGroups, group)
+		var isSuccess = false
+		if utils.Has(setGroupAccountReq.Groups, group.Gid) { // 有，则添加
+			isSuccess, _ = models.SetUidResourceGroup(group.Gid, *utils.Unique(
+				append(group.UserIds, setGroupAccountReq.Uid),
+			))
+
+		} else { // 无，则去除
+			uids := *utils.Filter(&group.UserIds, func(t string) bool {
+				return t != setGroupAccountReq.Uid
+			})
+			isSuccess, _ = models.SetUidResourceGroup(group.Gid, *utils.Unique(
+				uids,
+			))
 		}
-	}
-	succNum := 0
-	for _, group := range filteredGroups {
-		succ, _ := models.SetUidResourceGroup(group.Gid, *utils.Unique(
-			append(group.UserIds, setGroupAccountReq.Uid),
-		))
-		if succ {
-			succNum = succNum + 1
+		if isSuccess {
+			successNum = successNum + 1
 		}
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK_TIPS.Code, "", &gin.H{
-		"succNum": succNum,
+		"successNum": successNum,
 	}))
 }
 
@@ -208,8 +259,8 @@ func ShareToGroup(c *gin.Context) {
 	}
 
 	uid, _ := c.Get("uid")
-	hasGid := models.GetGroupByIdAndUid(shareToGroupReq.Gid, uid.(string))
-	if hasGid == nil {
+
+	if !checkGroupIsVisibleToUser(uid.(string), shareToGroupReq.Gid) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_NOT_FOUND_TIPS.Code, constants.CODE_GROUP_NOT_FOUND_TIPS.Tip, nil))
 		return
 	}
@@ -233,6 +284,186 @@ func ShareToGroup(c *gin.Context) {
 	}
 }
 
-func GroupEmpty(c *gin.Context) {
+const (
+	GroupResourceDelete = "delete"
+	GroupResourceMove   = "move"
+	GroupResourceRename = "rename"
+	GroupResourceExpire = "expire"
+)
 
+type OperationGroupResourceReq struct {
+	// 资源id
+	Rid string `json:"rid" form:"rid" binding:"required"`
+	// 操作
+	Oper string `json:"oper" form:"oper" binding:"required"`
+	// rename时新名称
+	NewName string `json:"new_name" form:"new_name"`
+	// move 时新父目录
+	ParentDid string `json:"parent_did" form:"parent_did"`
+	// 修改过期日期时
+	ExpireDate string `json:"expire_date" form:"expire_date"`
+}
+type OperationGroupResourceReqInner struct {
+	OperationGroupResourceReq
+	Uid string
+}
+
+// 操作已经分享到资源组的资源
+func OperationGroupResource(c *gin.Context) {
+	var operationGroupResourceReq OperationGroupResourceReq
+	if c.ShouldBind(&operationGroupResourceReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	handleOperationGroupResourceDispatch.name = operationGroupResourceReq.Oper
+	uid, _ := c.Get("uid")
+	operationGroupResourceReqInner := &OperationGroupResourceReqInner{
+		operationGroupResourceReq,
+		uid.(string),
+	}
+	err := handleOperationGroupResourceDispatch.handle(operationGroupResourceReqInner)
+	if err == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+		return
+	}
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_OPERATION_FAILED_TIPS.Code, err.Error(), nil))
+}
+
+type HandleOperationGroupResourceDispatch struct {
+	name       string
+	strategies []HandleOperationGroupResourceStrategy
+}
+type HandleOperationGroupResourceStrategy struct {
+	canHandle func(string) bool
+	handle    func(*OperationGroupResourceReqInner) error
+}
+
+func (h *HandleOperationGroupResourceDispatch) handle(o *OperationGroupResourceReqInner) error {
+	var err error
+	for _, strategy := range h.strategies {
+		if strategy.canHandle(o.Oper) {
+			err = strategy.handle(o)
+			break
+		}
+	}
+	return err
+}
+
+var handleOperationGroupResourceDispatch = &HandleOperationGroupResourceDispatch{
+	name: "",
+	strategies: []HandleOperationGroupResourceStrategy{
+		// 删除
+		{
+			canHandle: func(name string) bool {
+				return name == GroupResourceDelete
+			},
+			handle: func(o *OperationGroupResourceReqInner) error {
+				_, err := models.DeleteResourceByUidAndRid(o.Uid, o.Rid)
+				return err
+			},
+		},
+		// 移动
+		{
+			canHandle: func(name string) bool {
+				return name == GroupResourceMove
+			},
+			handle: func(o *OperationGroupResourceReqInner) error {
+				_, err := models.MoveResourceByUidAndRid(o.ParentDid, o.Uid, o.Rid)
+				return err
+			},
+		},
+		// 重命名
+		{
+			canHandle: func(name string) bool {
+				return name == GroupResourceRename
+			},
+			handle: func(o *OperationGroupResourceReqInner) error {
+				_, err := models.RenameResourceByUidAndRid(o.ParentDid, o.Uid, o.Rid)
+				return err
+			},
+		},
+		// 有效期
+		{
+			canHandle: func(name string) bool {
+				return name == GroupResourceExpire
+			},
+			handle: func(o *OperationGroupResourceReqInner) error {
+				_, err := models.ExpireChangeResourceByUidAndRid(o.ExpireDate, o.Uid, o.Rid)
+				return err
+			},
+		},
+	},
+}
+
+type SearchGroupResourceReq struct {
+	Gid  string `json:"gid" form:"gid" binding:"required"`
+	Name string `json:"name" form:"name" binding:"required"`
+}
+
+// 搜索已经分享到资源组的资源
+func SearchGroupResource(c *gin.Context) {
+	var searchGroupResourceReq SearchGroupResourceReq
+	if c.ShouldBindQuery(&searchGroupResourceReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	uid, _ := c.Get("uid")
+	uidStr := uid.(string)
+
+	list := models.SearchResourceByName(searchGroupResourceReq.Gid, searchGroupResourceReq.Name)
+	var newList = make([]ResourceGroupDirItemWithOp, 0)
+	for _, item := range *list {
+		opItem := &ResourceGroupDirItemWithOp{
+			item,
+			item.Uid == uidStr,
+		}
+		newList = append(newList, *opItem)
+	}
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+		"list": newList,
+	}))
+
+}
+
+// 操作已经分享到资源组的资源
+func PreviewGroupResource(c *gin.Context) {
+	var downloadGroupResourceReq DownloadGroupResourceReq
+	if c.ShouldBindQuery(&downloadGroupResourceReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	resourceItem := models.GetGroupResourceById(downloadGroupResourceReq.Rid)
+	if resourceItem == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+	previewFile(resourceItem.Fid, resourceItem.Uid, c)
+}
+
+type DownloadGroupResourceReq struct {
+	Rid string `form:"rid" json:"rid" binding:"required"`
+}
+
+// 操作已经分享到资源组的资源
+func DownloadGroupResource(c *gin.Context) {
+	var downloadGroupResourceReq DownloadGroupResourceReq
+	if c.ShouldBindQuery(&downloadGroupResourceReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	resourceItem := models.GetGroupResourceById(downloadGroupResourceReq.Rid)
+	if resourceItem == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+
+	downloadFile(resourceItem.Fid, resourceItem.Uid, c)
 }

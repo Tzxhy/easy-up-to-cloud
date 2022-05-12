@@ -79,48 +79,56 @@ type FileIdReq struct {
 
 // 下载文件
 func DownloadFile(c *gin.Context) {
-	var FileIdReq FileIdReq
-	if c.ShouldBindQuery(&FileIdReq) == nil {
+	var fileIdReq FileIdReq
+	if c.ShouldBindQuery(&fileIdReq) == nil {
 		uid, _ := c.Get("uid")
-		fileInfo := models.GetFile(FileIdReq.Fid, uid.(string))
-		if fileInfo == nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
-			return
-		}
-		contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
-		c.Header("Content-Type", contentType)
-		c.Header("Content-Disposition", "attachment; filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
-		c.Header("Content-Transfer-Encoding", "binary")
-		c.File(fileInfo.FileRealPath)
+		downloadFile(fileIdReq.Fid, uid.(string), c)
 		return
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 }
 
+func downloadFile(fid, uid string, c *gin.Context) {
+	fileInfo := models.GetFile(fid, uid)
+	if fileInfo == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST_TIPS.Code, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
+		return
+	}
+	contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Disposition", "attachment; filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.File(fileInfo.FileRealPath)
+}
+
 // 预览
 func PreviewFile(c *gin.Context) {
-	var FileIdReq FileIdReq
-	if c.ShouldBindQuery(&FileIdReq) == nil {
+	var fileIdReq FileIdReq
+	if c.ShouldBindQuery(&fileIdReq) == nil {
 		uid, _ := c.Get("uid")
-		fileInfo := models.GetFile(FileIdReq.Fid, uid.(string))
-		if fileInfo == nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
-			return
-		}
-		contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
-		c.Header("Content-Type", contentType)
-		c.Header("Content-Disposition", "inline;filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
-		c.Header("Content-Transfer-Encoding", "binary")
-		c.File(fileInfo.FileRealPath)
+		previewFile(fileIdReq.Fid, uid.(string), c)
 		return
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+}
+
+func previewFile(fid, uid string, c *gin.Context) {
+	fileInfo := models.GetFile(fid, uid)
+	if fileInfo == nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
+		return
+	}
+	contentType := mime.TypeByExtension(filepath.Ext(fileInfo.FileRealPath))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Disposition", "inline;filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.File(fileInfo.FileRealPath)
 }
 
 type FileRenameReq struct {

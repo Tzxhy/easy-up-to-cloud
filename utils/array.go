@@ -43,3 +43,16 @@ func Unique[T comparable](slice []T) *[]T {
 	}
 	return &newSlice
 }
+
+// 使切片中的元素都唯一
+func Filter[T interface{}](slice *[]T, filter func(T) bool) *[]T {
+	var newSlice []T
+
+	for _, item := range *slice {
+		need := filter(item)
+		if need {
+			newSlice = append(newSlice, item)
+		}
+	}
+	return &newSlice
+}

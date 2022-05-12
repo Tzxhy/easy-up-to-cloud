@@ -31,7 +31,7 @@ func AddDir(owner_id string, dirname string, parent_did string) (string, error) 
 	stmt, err := DB.Prepare("insert into dirs (did, owner_id, dirname, parent_did) values(?, ?, ?, ?)")
 	utils.CheckErr(err)
 	defer stmt.Close()
-	did := utils.RandStringBytesMaskImprSrc(5)
+	did := utils.GenerateDid()
 	_, err = stmt.Exec(did, owner_id, dirname, parent_did)
 	utils.CheckErr(err)
 	return did, nil

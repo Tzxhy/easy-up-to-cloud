@@ -52,17 +52,16 @@ func InitRouter() *gin.Engine {
 		// 所有操作仅操作数据库，不操作实际文件
 		// 所有操作仅操作数据库，不操作实际文件
 		// 所有操作仅操作数据库，不操作实际文件
-		group.POST("create-group", controllers.GroupCreate)    // 获取当前账号可见群组
-		group.GET("groups", controllers.GetMyGroups)           // 获取当前账号可见群组
-		group.GET("get-dir-list", controllers.GetGroupDir)     // 获取当前账号可见群组
-		group.POST("create-dir", controllers.GroupCreateDir)   // 创建目录
-		group.POST("set-account", controllers.SetGroupAccount) // 设置账户分组等信息
-		group.POST("share", controllers.ShareToGroup)          // 创建分享到组，可以设计有效期
-		group.POST("operation", controllers.GroupEmpty)        // 操作已共享资源。重命名，移动，删除等
-		group.GET("list", controllers.GroupEmpty)              // 获取某个level的目录
-		group.GET("search", controllers.GroupEmpty)            // 搜索
-		group.GET("download", controllers.GroupEmpty)          // 下载文件
-		group.GET("preview", controllers.GroupEmpty)           // 资源预览
+		group.POST("create-group", controllers.GroupCreate)         // 创建资源组
+		group.GET("groups", controllers.GetMyGroups)                // 获取当前账号可见组
+		group.GET("get-dir-list", controllers.GetGroupDir)          // 获取当前gid下某目录
+		group.POST("create-dir", controllers.GroupCreateDir)        // 创建目录
+		group.POST("set-account", controllers.SetGroupAccount)      // 设置账户分组等信息
+		group.POST("share", controllers.ShareToGroup)               // 创建分享到组，可以设计有效期
+		group.POST("operation", controllers.OperationGroupResource) // 操作已共享资源。重命名，移动，删除等
+		group.GET("search", controllers.SearchGroupResource)        // 搜索
+		group.GET("download", controllers.DownloadGroupResource)    // 下载文件
+		group.GET("preview", controllers.PreviewGroupResource)      // 资源预览
 	}
 
 	return r
