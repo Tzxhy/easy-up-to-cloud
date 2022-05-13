@@ -53,7 +53,11 @@ func Login(c *gin.Context) {
 				}
 				c.SetCookie(constants.TOKEN_COOKIE_NAME, tokenString, timeSecond, "/", "", false, true)
 				models.SetKey(tokenString, 1)
-				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+				isAdmin := utils.Has(&models.AdminAccount, userInfo.Uid)
+				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+					"username": userInfo.Username,
+					"is_admin": isAdmin,
+				}))
 				return
 			}
 		}

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -58,7 +59,8 @@ func canReadGroupResource(uid, gid string) bool {
 		log.Fatal("item is nil: ", gid)
 		return false
 	}
-	return utils.Has(item.UserIds, uid)
+	isAdmin := utils.Has(&models.AdminAccount, uid)
+	return isAdmin || utils.Has(&item.UserIds, uid)
 }
 
 // 获取资源组列表
@@ -127,7 +129,7 @@ func GetGroupDir(c *gin.Context) {
 	commonGroup := models.GetCommonGroupResource()
 	allGroup := models.GetAllGroupResource()
 	var newList = make([]ResourceGroupDirItemWithOp, 0)
-	currentIsAdmin := utils.Has(models.AdminAccount, uidStr)
+	currentIsAdmin := utils.Has(&models.AdminAccount, uidStr)
 	for _, item := range *list {
 		isCommon := false
 		isOwnerUser := false
@@ -141,7 +143,7 @@ func GetGroupDir(c *gin.Context) {
 			if gidItem == nil {
 				log.Fatal(gidItem)
 			}
-			isOwnerUser = utils.Has(gidItem.UserIds, uidStr)
+			isOwnerUser = utils.Has(&gidItem.UserIds, uidStr)
 		}
 		if currentIsAdmin || isCommon || isOwnerUser {
 			opItem := &ResourceGroupDirItemWithOp{
@@ -156,24 +158,18 @@ func GetGroupDir(c *gin.Context) {
 	}))
 }
 
-type GroupCreateReq struct {
-	Name string `json:"name" form:"name" binding:"required"`
-}
+// type GroupCreateReq struct {
+// 	Name string `json:"name" form:"name" binding:"required"`
+// }
 
 // 创建资源组
-func GroupCreate(c *gin.Context) {
+func groupCreate(c *gin.Context, name string) {
 	// 只有管理员可以创建
 	if !checkIsAdmin(c, true) {
 		return
 	}
 
-	var groupCreateReq GroupCreateReq
-	if c.ShouldBind(&groupCreateReq) != nil {
-		utils.ReturnParamNotValid(c)
-		return
-	}
-
-	gid, err := models.CreateGroup(groupCreateReq.Name, models.GroupTypeVisibleByUid)
+	gid, err := models.CreateGroup(name, models.GroupTypeVisibleByUid)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_GROUP_CREATE_GROUP_HAS_TIPS.Code, constants.CODE_GROUP_CREATE_GROUP_HAS_TIPS.Tip, nil))
 		return
@@ -184,7 +180,7 @@ func GroupCreate(c *gin.Context) {
 }
 
 type GroupCreateDirReq struct {
-	ParentDid string `json:"parent_did" form:"parent_did" binding:"required"`
+	ParentDid string `json:"parent_did" form:"parent_did"`
 	Name      string `json:"name" form:"name" binding:"required"`
 }
 
@@ -200,15 +196,11 @@ func GroupCreateDir(c *gin.Context) {
 		utils.ReturnParamNotValid(c)
 		return
 	}
-	// // 检查该group可见性
-	// if !checkGroupIsVisibleToUser(uid.(string), groupCreateDirReq.Gid) {
-	// 	c.JSON(http.StatusOK, utils.ReturnJSON(
-	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
-	// 		constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
-	// 		nil,
-	// 	))
-	// 	return
-	// }
+
+	if groupCreateDirReq.ParentDid == "" { // 创建分组
+		groupCreate(c, groupCreateDirReq.Name)
+		return
+	}
 
 	pid := groupCreateDirReq.ParentDid
 	originResource := models.GetGroupResourceById(groupCreateDirReq.ParentDid)
@@ -231,6 +223,7 @@ func GroupCreateDir(c *gin.Context) {
 
 	rid, err := models.CreateGroupDir(originResource.Gid, pid, groupCreateDirReq.Name, uid.(string))
 	if err != nil {
+		log.Print("GroupCreateDir model err: ", err)
 		c.JSON(http.StatusOK, utils.ReturnJSON(
 			constants.CODE_GROUP_CREATE_DIR_HAS_NAME_TIPS.Code,
 			constants.CODE_GROUP_CREATE_DIR_HAS_NAME_TIPS.Tip,
@@ -274,7 +267,7 @@ func SetGroupAccount(c *gin.Context) {
 	successNum := 0
 	for _, group := range *groups {
 		var isSuccess = false
-		if utils.Has(setGroupAccountReq.Groups, group.Gid) { // 有，则添加
+		if utils.Has(&setGroupAccountReq.Groups, group.Gid) { // 有，则添加
 			isSuccess, _ = models.SetUidResourceGroup(group.Gid, *utils.Unique(
 				append(group.UserIds, setGroupAccountReq.Uid),
 			))
@@ -298,9 +291,8 @@ func SetGroupAccount(c *gin.Context) {
 }
 
 type ShareToGroupReq struct {
-	// Fid 与 Did 二选一
-	Fid        string `json:"fid" form:"fid"`
-	Did        string `json:"did" form:"did"`
+	// Fid
+	Fid        string `json:"fid" form:"fid" binding:"required"`
 	Name       string `json:"name" form:"name" binding:"required"`
 	ParentDid  string `json:"parent_did" form:"parent_did" binding:"required"`
 	RType      uint8  `json:"r_type" form:"r_type" binding:"required"`
@@ -327,10 +319,19 @@ func ShareToGroup(c *gin.Context) {
 		return
 	}
 
-	rid, err := models.ShareDirOrFileToGroup(
+	canRead := canReadGroupResource(uid.(string), resourceItem.Gid)
+	if !canRead {
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_GROUP_NOT_FOUND_TIPS.Code,
+			constants.CODE_GROUP_NOT_FOUND_TIPS.Tip,
+			nil,
+		))
+		return
+	}
+
+	rid, err := models.ShareFileToGroup(
 		resourceItem.Gid,
 		shareToGroupReq.Fid,
-		shareToGroupReq.Did,
 		shareToGroupReq.Name,
 		uid.(string),
 		shareToGroupReq.ParentDid,
@@ -348,7 +349,6 @@ func ShareToGroup(c *gin.Context) {
 
 const (
 	GroupResourceDelete = "delete"
-	GroupResourceMove   = "move"
 	GroupResourceRename = "rename"
 	GroupResourceExpire = "expire"
 )
@@ -410,6 +410,39 @@ func (h *HandleOperationGroupResourceDispatch) handle(o *OperationGroupResourceR
 	}
 	return err
 }
+func HandleDeleteRid(o *OperationGroupResourceReqInner) error {
+	// 定义为只有admin用户可以删除文件夹
+	// user用户可以删除自己分享的文件
+	isAdmin := utils.Has(&models.AdminAccount, o.Uid)
+	resourceItem := models.GetGroupResourceById(o.Rid)
+
+	if resourceItem.RType == models.GROUP_RESOURCE_FILE { // 文件，直接删
+		if isAdmin {
+			models.DeleteResourceByRid(o.Rid)
+		}
+		return nil
+	} else { // 文件夹，则递归删
+		list := models.GetGroupDir(o.Rid)
+
+		oList := utils.Map(list, func(resource models.ResourceGroupDirItem) *OperationGroupResourceReqInner {
+			return &OperationGroupResourceReqInner{
+				OperationGroupResourceReq{
+					Rid: resource.Rid,
+				},
+				o.Uid,
+			}
+		})
+		for _, child := range *oList {
+			HandleDeleteRid(child)
+		}
+
+		if isAdmin {
+			models.DeleteResourceByRid(o.Rid)
+		}
+
+	}
+	return nil
+}
 
 var handleOperationGroupResourceDispatch = &HandleOperationGroupResourceDispatch{
 	name: "",
@@ -419,20 +452,7 @@ var handleOperationGroupResourceDispatch = &HandleOperationGroupResourceDispatch
 			canHandle: func(name string) bool {
 				return name == GroupResourceDelete
 			},
-			handle: func(o *OperationGroupResourceReqInner) error {
-				_, err := models.DeleteResourceByUidAndRid(o.Uid, o.Rid)
-				return err
-			},
-		},
-		// 移动
-		{
-			canHandle: func(name string) bool {
-				return name == GroupResourceMove
-			},
-			handle: func(o *OperationGroupResourceReqInner) error {
-				_, err := models.MoveResourceByUidAndRid(o.ParentDid, o.Uid, o.Rid)
-				return err
-			},
+			handle: HandleDeleteRid,
 		},
 		// 重命名
 		{
@@ -440,7 +460,11 @@ var handleOperationGroupResourceDispatch = &HandleOperationGroupResourceDispatch
 				return name == GroupResourceRename
 			},
 			handle: func(o *OperationGroupResourceReqInner) error {
-				_, err := models.RenameResourceByUidAndRid(o.ParentDid, o.Uid, o.Rid)
+				// 检查
+				if o.NewName == "" {
+					return errors.New("名称不能为空")
+				}
+				_, err := models.RenameResourceByUidAndRid(o.Uid, o.Rid, o.NewName)
 				return err
 			},
 		},
@@ -475,7 +499,7 @@ func SearchGroupResource(c *gin.Context) {
 
 	var newList = make([]ResourceGroupDirItemWithOp, 0)
 	commonGroup := models.GetCommonGroupResource()
-	currentIsAdmin := utils.Has(models.AdminAccount, uidStr)
+	currentIsAdmin := utils.Has(&models.AdminAccount, uidStr)
 	allGroup := models.GetAllGroupResource()
 	for _, item := range *list {
 		isCommon := false
@@ -490,7 +514,7 @@ func SearchGroupResource(c *gin.Context) {
 			if gidItem == nil {
 				log.Fatal(gidItem)
 			}
-			isOwnerUser = utils.Has(gidItem.UserIds, uidStr)
+			isOwnerUser = utils.Has(&gidItem.UserIds, uidStr)
 		}
 
 		if currentIsAdmin || isCommon || isOwnerUser {
@@ -525,7 +549,7 @@ func PreviewGroupResource(c *gin.Context) {
 	}
 
 	uid, _ := c.Get("uid")
-	currentIsAdmin := utils.Has(models.AdminAccount, uid.(string))
+	currentIsAdmin := utils.Has(&models.AdminAccount, uid.(string))
 
 	if !currentIsAdmin && !canReadGroupResource(uid.(string), resourceItem.Gid) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(
@@ -569,7 +593,7 @@ func DownloadGroupResource(c *gin.Context) {
 	}
 
 	uid, _ := c.Get("uid")
-	currentIsAdmin := utils.Has(models.AdminAccount, uid.(string))
+	currentIsAdmin := utils.Has(&models.AdminAccount, uid.(string))
 	log.Print("models.AdminAccount: ", models.AdminAccount)
 	log.Print("uid: ", uid)
 
@@ -595,4 +619,33 @@ func DownloadGroupResource(c *gin.Context) {
 
 func GroupUserConfig(c *gin.Context) {
 
+}
+
+type MoveResourcesReq struct {
+	Rids      []string `json:"rids" form:"rids" binding:"required"`
+	ParentDid string   `json:"parent_did" form:"parent_did" binding:"required"`
+}
+
+func MoveResources(c *gin.Context) {
+	var moveResourcesReq MoveResourcesReq
+	if c.ShouldBind(&moveResourcesReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+
+	uid, _ := c.Get("uid")
+	uidStr := uid.(string)
+	isAdmin := utils.Has(&models.AdminAccount, uidStr)
+	if isAdmin { // 管理员直接全权
+		count := models.MoveMultiGroups(moveResourcesReq.Rids, moveResourcesReq.ParentDid)
+
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_OK,
+			"",
+			&gin.H{
+				"successNum": count,
+			},
+		))
+		return
+	}
 }

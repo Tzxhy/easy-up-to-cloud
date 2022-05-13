@@ -8,11 +8,18 @@ import (
 
 func InitRouter() *gin.Engine {
 	r := gin.Default()
+	r.Use(middlewares.IpForbidden())
 	r.Use(middlewares.Cors())
 	r.Use(middlewares.FrontendFileHandler())
 	v1 := r.Group("/api/v1")
 
 	v1.GET("ping", controllers.Ping)
+
+	user := v1.Group("user")
+	user.Use(middlewares.NeedAuth())
+	{
+		user.GET("info", controllers.GetUserInfo)
+	}
 
 	// 登录
 	auth := v1.Group("auth")
@@ -52,8 +59,6 @@ func InitRouter() *gin.Engine {
 		// 所有操作仅操作数据库，不操作实际文件
 		// 所有操作仅操作数据库，不操作实际文件
 		// 所有操作仅操作数据库，不操作实际文件
-		group.POST("create-group", controllers.GroupCreate)         // 创建资源组
-		group.GET("groups", controllers.GetMyGroups)                // 获取当前账号可见组
 		group.GET("get-dir-list", controllers.GetGroupDir)          // 获取当前gid下某目录
 		group.POST("create-dir", controllers.GroupCreateDir)        // 创建目录
 		group.POST("set-account", controllers.SetGroupAccount)      // 设置账户分组等信息
@@ -62,7 +67,7 @@ func InitRouter() *gin.Engine {
 		group.GET("search", controllers.SearchGroupResource)        // 搜索
 		group.GET("download", controllers.DownloadGroupResource)    // 下载文件
 		group.GET("preview", controllers.PreviewGroupResource)      // 资源预览
-		group.GET("user-config", controllers.GroupUserConfig)       // 资源预览
+		group.POST("move-resources", controllers.MoveResources)     // 移动多个资源
 
 	}
 

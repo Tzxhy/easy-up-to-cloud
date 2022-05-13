@@ -22,16 +22,16 @@ type ResourceGroupItem struct {
 }
 
 type ResourceGroupDirItem struct {
-	Gid        string `json:"gid"`
-	Rid        string `json:"rid"`
-	Fid        string `json:"fid"`
-	Did        string `json:"did"`
-	Name       string `json:"name"`
-	ParentDid  string `json:"parent_did"`
-	RType      uint8  `json:"r_type"`
-	Uid        string `json:"-"`
-	CreateDate string `json:"create_date"`
-	ExpireDate string `json:"expire_date"`
+	Gid        string         `json:"gid"`
+	Rid        string         `json:"rid"`
+	Fid        string         `json:"fid"`
+	Did        string         `json:"did"`
+	Name       string         `json:"name"`
+	ParentDid  string         `json:"parent_did"`
+	RType      uint8          `json:"r_type"`
+	Uid        string         `json:"-"`
+	CreateDate string         `json:"create_date"`
+	ExpireDate sql.NullString `json:"expire_date"`
 }
 
 func GetResourceGroup(uid string) *[]ResourceGroupItem {
@@ -76,7 +76,7 @@ func GetGroupById(gid string) *ResourceGroupItem {
 
 func GetGroupByIdAndUid(gid, uid string) *ResourceGroupItem {
 	accounts := GetAdminAccount()
-	if utils.Has(*accounts, uid) { // 管理员
+	if utils.Has(accounts, uid) { // 管理员
 		uid = "%" // 清空查询
 	}
 	row := DB.QueryRow("select * from user_group where gid = ? and (user_ids like ? or group_type = ?)", gid, "%"+uid+"%", GroupTypeCommon)
@@ -247,14 +247,14 @@ func DeleteOrInsertAdminAccount(uid string, isAdmin bool) bool {
 	return row == 1
 }
 
-func ShareDirOrFileToGroup(gid, fid, did, name, uid, parent_did, expire_date string, rtype uint8) (rid string, err error) {
+func ShareFileToGroup(gid, fid, name, uid, parent_did, expire_date string, rtype uint8) (rid string, err error) {
 	rid = utils.GenerateRid()
 	stmt, err := DB.Prepare(
-		`insert into user_group_resource (gid, rid, fid, did, name, parent_did, rtype, uid, expire_date)
-		values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`insert into user_group_resource (gid, rid, fid, name, parent_did, rtype, uid, expire_date)
+		values (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	utils.CheckErr(err)
-	result, err := stmt.Exec(gid, rid, fid, did, name, parent_did, rtype, uid, expire_date)
+	result, err := stmt.Exec(gid, rid, fid, name, parent_did, rtype, uid, expire_date)
 	utils.CheckErr(err)
 	_, err = result.RowsAffected()
 	if err != nil {
@@ -335,4 +335,34 @@ func ExpireChangeResourceByUidAndRid(uid, rid, newExpireDate string) (bool, erro
 	}
 	row, _ := ret.RowsAffected()
 	return row == 1, nil
+}
+
+// 直接通过fid删除文件分享记录，慎用
+func DeleteResourceByFid(fid string) {
+	DB.Exec("delete from user_group_resource where fid = ?", fid)
+}
+
+// 直接通过rid删除文件分享记录，慎用
+func DeleteResourceByRid(rid string) {
+	DB.Exec("delete from user_group_resource where rid = ?", rid)
+}
+
+func MoveMultiGroups(rids []string, new_parent_did string) uint8 {
+
+	newRids := *utils.Map(&rids, func(st string) string {
+		return "'" + st + "'"
+	})
+	sql := "update user_group_resource set parent_did = '" +
+		new_parent_did +
+		"' where rid in (" + strings.Join(
+		newRids,
+		", ",
+	) + ")"
+	ret, err := DB.Exec(sql)
+	if err != nil {
+		log.Print("MoveMultiGroups exec err: ", err)
+		return 0
+	}
+	row, _ := ret.RowsAffected()
+	return uint8(row)
 }

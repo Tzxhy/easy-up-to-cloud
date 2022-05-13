@@ -10,8 +10,8 @@ func Some[T interface{}](slice []T, has func(T) bool) bool {
 	return false
 }
 
-func Has[T comparable](slice []T, has T) bool {
-	for _, item := range slice {
+func Has[T comparable](slice *[]T, has T) bool {
+	for _, item := range *slice {
 
 		if has == item {
 			return true
@@ -65,4 +65,14 @@ func Find[T interface{}](slice *[]T, find func(T) bool) *T {
 		}
 	}
 	return nil
+}
+
+func Map[T interface{}, O interface{}](slice *[]T, mapFunc func(T) O) *[]O {
+	var newSlice []O
+
+	for _, item := range *slice {
+		o := mapFunc(item)
+		newSlice = append(newSlice, o)
+	}
+	return &newSlice
 }

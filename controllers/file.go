@@ -179,32 +179,12 @@ func DeleteFile(c *gin.Context) {
 		deleteCode := deleteFile(fileIdReq.Fid, uid.(string))
 		if deleteCode == OK {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+			models.DeleteResourceByFid(fileIdReq.Fid)
 			return
 		} else if FILE_NOT_FOUND == deleteCode {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
 			return
 		}
-		// file := models.GetFile(fileIdReq.Fid, uid.(string))
-		// if file != nil {
-		// 	succ := models.DeleteFile(fileIdReq.Fid, uid.(string))
-		// 	if succ {
-		// 		// 删除实际文件
-		// 		err := os.Remove(file.FileRealPath)
-		// 		if err != nil {
-		// 			c.JSON(http.StatusInternalServerError, utils.ReturnJSON(
-		// 				constants.CODE_UNHANDLED_ERROR,
-		// 				err.Error(),
-		// 				nil,
-		// 			))
-		// 			return
-		// 		}
-		// 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
-		// 		return
-		// 	}
-		// } else {
-		// 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.TIPS_FILE_NOT_EXIST, nil))
-		// 	return
-		// }
 
 	} else {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
