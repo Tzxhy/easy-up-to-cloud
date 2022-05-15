@@ -146,7 +146,9 @@ func RenameFile(owner_id, fid, name string) bool {
 	utils.CheckErr(err)
 	defer stmt.Close()
 	result, err := stmt.Exec(name, owner_id, fid)
-	utils.CheckErr(err)
+	if err != nil {
+		return false
+	}
 	affectedLines, err := result.RowsAffected()
 	utils.CheckErr(err)
 	return affectedLines == 1

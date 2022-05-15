@@ -5,3 +5,6 @@ check-update: false
 keep-file-name: false
 # 备份数据库频率
 backup-db: "1d"
+# 是否可以注册用户
+can-register-user: false
+

@@ -180,7 +180,9 @@ func SetUidResourceGroup(gid string, user_ids []string) (succ bool, err error) {
 	stmt, _ := DB.Prepare("update user_group set user_ids = ? where gid = ? and group_type <> ?")
 	defer stmt.Close()
 
-	ret, err := stmt.Exec(strings.Join(user_ids, ";"), gid, GroupTypeCommon)
+	ret, err := stmt.Exec(strings.Join(*utils.Filter(&user_ids, func(s string) bool {
+		return s != ""
+	}), ";"), gid, GroupTypeCommon)
 	if err != nil {
 		return false, err
 	}

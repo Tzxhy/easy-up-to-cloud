@@ -27,7 +27,9 @@ type UploadFileReq struct {
 func UploadFile(c *gin.Context) {
 	myFile, err := c.FormFile("file")
 	if err != nil {
-		log.Print(err)
+		log.Print("UploadFile err: ", err)
+		utils.ReturnParamNotValid(c)
+		return
 	}
 
 	uid, _ := c.Get("uid")

@@ -71,5 +71,13 @@ func InitRouter() *gin.Engine {
 
 	}
 
+	// TODO
+	// 分享
+	// share := v1.Group("share")
+	// 离线下载
+	// offlineDownload := v1.Group("download")
+	// 游客
+	// guest := v1.Group("guest")
+
 	return r
 }
