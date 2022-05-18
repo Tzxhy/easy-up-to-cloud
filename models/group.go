@@ -8,50 +8,50 @@ import (
 	"gitee.com/tzxhy/web/utils"
 )
 
+type AdminItem struct {
+	Uid string `gorm:"primarykey;type:string not null;"`
+}
+
 const (
 	GroupTypeCommon       = 0
 	GroupTypeVisibleByUid = 1
 )
 
+type ResourceGroupType uint
 type ResourceGroupItem struct {
-	Gid        string   `json:"gid"`
-	Name       string   `json:"name"`
-	UserIds    []string `json:"-"`
-	CreateDate string   `json:"create_date"`
-	GroupType  uint8    `json:"-"`
+	Gid        string            `json:"gid" gorm:"type:string not null;"`
+	Name       string            `json:"name" gorm:"primarykey;type:string not null;"`
+	UserIds    []string          `json:"-" gorm:"type:string;default:''"`
+	CreateDate string            `json:"create_date" gorm:"type:DATETIME not null;default:CURRENT_TIMESTAMP"`
+	GroupType  ResourceGroupType `json:"-" gorm:"primarykey;type:integer not null;default:0"`
 }
 
 type ResourceGroupDirItem struct {
-	Gid        string         `json:"gid"`
-	Rid        string         `json:"rid"`
-	Fid        string         `json:"fid"`
-	Did        string         `json:"did"`
-	Name       string         `json:"name"`
-	ParentDid  string         `json:"parent_did"`
-	RType      uint8          `json:"r_type"`
-	Uid        string         `json:"-"`
-	CreateDate string         `json:"create_date"`
-	ExpireDate sql.NullString `json:"expire_date"`
+	Gid       string            `json:"gid" gorm:"primarykey;type:string not null;"`
+	Rid       string            `json:"rid" gorm:"type:string not null;"`
+	Fid       string            `json:"fid" gorm:"type:string;default:''"`
+	Did       string            `json:"did" gorm:"type:string;default:''"`
+	Name      string            `json:"name" gorm:"primarykey;type:string not null;"`
+	ParentDid string            `json:"parent_did" gorm:"primarykey;type:string not null;default:''"`
+	RType     ResourceGroupType `json:"r_type" gorm:"type:integer not null;"`
+	// 拥有者
+	Uid        string         `json:"-" gorm:"type:string not null;"`
+	CreateDate string         `json:"create_date" gorm:"type:datetime not null;default:CURRENT_TIMESTAMP"`
+	ExpireDate sql.NullString `json:"expire_date" gorm:"type:DATETIME;"`
 }
 
 func GetResourceGroup(uid string) *[]ResourceGroupItem {
-	rows, err := DB.Query("select gid, name, create_date from user_group where group_type = ? or user_ids like ?", GroupTypeCommon, "%"+uid+"%")
+	var groups []ResourceGroupItem
+	result := DB.Where(
+		"group_type = ? or user_ids like ?",
+		GroupTypeCommon,
+		"%"+uid+"%",
+	).Find(&groups)
+	err := result.Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rows.Close()
-
-	var items = make([]ResourceGroupItem, 0)
-	for rows.Next() {
-		item := new(ResourceGroupItem)
-		rows.Scan(
-			&item.Gid,
-			&item.Name,
-			&item.CreateDate,
-		)
-		items = append(items, *item)
-	}
-	return &items
+	return &groups
 }
 
 func GetGroupById(gid string) *ResourceGroupItem {

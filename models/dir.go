@@ -9,12 +9,12 @@ import (
 )
 
 type Dir struct {
-	Did     string `json:"did"`
-	OwnerId string
-	Dirname string `json:"dirname"`
+	Did     string `json:"did" gorm:"primarykey"`
+	OwnerId string `gorm:"primarykey;type:string not null"`
+	Dirname string `json:"dirname" gorm:"primarykey;type:string not null"`
 	// -1 为根目录
-	ParentDiD  string `json:"parent_did"`
-	CreateDate string `json:"create_date"`
+	ParentDiD  string `json:"parent_did" gorm:"primarykey;type:string not null;default:''"`
+	CreateDate string `json:"create_date" gorm:"type:datetime;default:CURRENT_TIMESTAMP"`
 }
 
 func AddDir(owner_id string, dirname string, parent_did string) (string, error) {
@@ -28,74 +28,70 @@ func AddDir(owner_id string, dirname string, parent_did string) (string, error) 
 			return "", errors.New(constants.TIPS_CREATE_DIR_WITH_NO_EXIST_PARENT)
 		}
 	}
-	stmt, err := DB.Prepare("insert into dirs (did, owner_id, dirname, parent_did) values(?, ?, ?, ?)")
-	utils.CheckErr(err)
-	defer stmt.Close()
+
 	did := utils.GenerateDid()
-	_, err = stmt.Exec(did, owner_id, dirname, parent_did)
-	utils.CheckErr(err)
+	dirItem := &Dir{
+		Did:       did,
+		OwnerId:   owner_id,
+		Dirname:   dirname,
+		ParentDiD: parent_did,
+	}
+
+	result := DB.Create(&dirItem)
+	utils.CheckErr(result.Error)
 	return did, nil
 }
 
 func GetDirByName(name string, owner_id string, parent_did string) *Dir {
-	rows, err := DB.Query("select * from dirs where owner_id = ? and dirname = ? and parent_did = ?", owner_id, name, parent_did)
+	var dir Dir
+	result := DB.Where(&Dir{
+		OwnerId:   owner_id,
+		ParentDiD: parent_did,
+		Dirname:   name,
+	}).Take(&dir)
+	err := result.Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rows.Close()
 
-	var dir *Dir
-	for rows.Next() {
-		dir = new(Dir)
-		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
-		break
-	}
-	return dir
+	return &dir
 }
 func GetDir(did string, owner_id string) *Dir {
-	rows, err := DB.Query("select * from dirs where owner_id = ? and did = ?", owner_id, did)
+	var dir Dir
+	result := DB.Where(&Dir{
+		OwnerId: owner_id,
+		Did:     did,
+	}).Take(&dir)
+	err := result.Error
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rows.Close()
-
-	var dir *Dir
-	for rows.Next() {
-		dir = new(Dir)
-		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
-		break
-	}
-	return dir
+	return &dir
 }
 
 func GetDirList(parent_id, owner_id string) *[]Dir {
-	rows, err := DB.Query("select * from dirs where owner_id = ? and parent_did = ?", owner_id, parent_id)
+	var dirs []Dir
+	result := DB.Where(&Dir{
+		OwnerId:   owner_id,
+		ParentDiD: parent_id,
+	}).Find(&dirs)
+	err := result.Error
 	if err != nil {
 		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	var dirs []Dir
-	for rows.Next() {
-		dir := new(Dir)
-		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
-		dirs = append(dirs, *dir)
 	}
 	return &dirs
 }
 
 func SearchDirList(owner_id, dirname string) *[]Dir {
-	rows, err := DB.Query("select * from dirs where owner_id = ? and dirname like ?", owner_id, "%"+dirname+"%")
+	var dirs []Dir
+	result := DB.Where(
+		"owner_id = ? and dirname like ?",
+		owner_id,
+		"%"+dirname+"%",
+	).Find(&dirs)
+	err := result.Error
 	if err != nil {
 		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	var dirs []Dir
-	for rows.Next() {
-		dir := new(Dir)
-		rows.Scan(&dir.Did, &dir.OwnerId, &dir.Dirname, &dir.ParentDiD, &dir.CreateDate)
-		dirs = append(dirs, *dir)
 	}
 	return &dirs
 }
@@ -104,36 +100,45 @@ func MoveDir(owner_id string, did string, new_parent_did string) bool {
 	if new_parent_did != "" && GetDir(new_parent_did, owner_id) == nil {
 		return false
 	}
-	stmt, err := DB.Prepare("update dirs set parent_did = ? where owner_id = ? and did = ?")
+	result := DB.Model(&Dir{
+		OwnerId: owner_id,
+		Did:     did,
+	}).Updates(&Dir{
+		ParentDiD: new_parent_did,
+	})
+	err := result.Error
 	utils.CheckErr(err)
-	defer stmt.Close()
-	result, err := stmt.Exec(new_parent_did, owner_id, did)
-	utils.CheckErr(err)
-	lines, _ := result.RowsAffected()
+
+	lines := result.RowsAffected
 	return lines == 1
 }
 
 func RenameDir(owner_id string, did string, new_name string) bool {
-	stmt, err := DB.Prepare("update dirs set dirname = ? where owner_id = ? and did = ?")
-	utils.CheckErr(err)
-	defer stmt.Close()
-	result, err := stmt.Exec(new_name, owner_id, did)
+	result := DB.Model(&Dir{
+		OwnerId: owner_id,
+		Did:     did,
+	}).Updates(&Dir{
+		Dirname: new_name,
+	})
+	err := result.Error
+
 	if err != nil {
 		return false
 	}
-	lines, _ := result.RowsAffected()
+	lines := result.RowsAffected
 	return lines == 1
 }
 
 // 删除指定did文件夹（不会递归删除其下文件/文件夹）
 func DeleteSingleDir(owner_id string, did string) bool {
-	stmt, err := DB.Prepare("delete from dirs where owner_id = ? and did = ?")
-	utils.CheckErr(err)
-	defer stmt.Close()
-	result, err := stmt.Exec(owner_id, did)
+	result := DB.Delete(&Dir{
+		OwnerId: owner_id,
+		Did:     did,
+	})
+	err := result.Error
 	if err != nil {
 		return false
 	}
-	lines, _ := result.RowsAffected()
+	lines := result.RowsAffected
 	return lines == 1
 }

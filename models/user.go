@@ -8,9 +8,10 @@ import (
 )
 
 type User struct {
-	Uid      string
-	Username string
-	Password string
+	Uid        string `gorm:"primarykey"`
+	Username   string `gorm:"type:string not null"`
+	Password   string `gorm:"type:string not null"`
+	CreateDate string `gorm:"type:datetime;default:CURRENT_TIMESTAMP"`
 }
 
 func IsUserOnline(username, password string) bool {
@@ -18,83 +19,85 @@ func IsUserOnline(username, password string) bool {
 }
 
 func HasUsername(username string) bool {
-	rows, err := DB.Query("select * from users where name = ?", username)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	hasRow := false
-	for rows.Next() {
-		hasRow = true
-		break
-	}
+	var count int64
+	DB.Where(&User{
+		Username: username,
+	}).Take(&User{}).Count(&count)
 
-	return hasRow
+	return count > 0
 }
 
 func AddUser(username, password string) (string, error) {
-	stmt, err := DB.Prepare("insert into users (uid, name, password) values(?, ?, ?)")
-	utils.CheckErr(err)
 	uid := utils.GenerateUid()
-	_, err = stmt.Exec(uid, username, password)
-	utils.CheckErr(err)
+	result := DB.Create(&User{
+		Uid:      uid,
+		Username: username,
+		Password: password,
+	})
+
+	err := result.Error
+	if err != nil {
+		return "", err
+	}
 
 	return uid, nil
 }
 
 func AddUserWithId(uid, username, password string) (string, error) {
-	stmt, err := DB.Prepare("insert into users (uid, name, password) values(?, ?, ?)")
-	utils.CheckErr(err)
-	_, err = stmt.Exec(uid, username, password)
+	result := DB.Create(&User{
+		Uid:      uid,
+		Username: username,
+		Password: password,
+	})
+	err := result.Error
+
 	utils.CheckErr(err)
 
 	return uid, nil
 }
 
 func GetUserById(id string) *User {
-	row := DB.QueryRow("select uid, name from users where uid = ?", id)
+	var user User
+	result := DB.Find(&user, &User{
+		Uid: id,
+	})
 
-	var user *User = new(User)
-	err := row.Scan(&user.Uid, &user.Username)
+	err := result.Error
+
 	if err != nil {
 		return nil
 	}
-	return user
+	return &user
 }
 
 func GetUserByNameAndPassword(username, password string) *User {
-	rows, err := DB.Query("select uid, name, password from users where name = ? and password = ?", username, password)
+	var user User
+	result := DB.Find(&user, &User{
+		Username: username,
+		Password: password,
+	})
+
+	err := result.Error
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rows.Close()
-
-	var user *User
-	for rows.Next() {
-		user = new(User)
-		rows.Scan(&user.Uid, &user.Username, &user.Password)
-		break
-	}
-	return user
+	return &user
 }
 
 func GetAdminUser() *[]User {
-	rows, err := DB.Query("select uid from admin")
+	var admins []AdminItem
+	result := DB.Find(&admins)
+
+	err := result.Error
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer rows.Close()
 
-	var admins []string
-	for rows.Next() {
-		admin := ""
-		rows.Scan(&admin)
-		admins = append(admins, admin)
-	}
-	log.Print("admins: ", admins)
 	var users []User
-	for _, uid := range admins {
-		user := GetUserById(uid)
+	for _, admin := range admins {
+		user := GetUserById(admin.Uid)
 		if user != nil {
 			users = append(users, *user)
 		}

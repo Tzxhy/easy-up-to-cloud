@@ -45,7 +45,7 @@ func checkIsAdmin(c *gin.Context, needRejectWhenNot bool) bool {
 
 func canReadGroupResource(uid, gid string) bool {
 	commonGroup := models.GetCommonGroupResource()
-	isCommon := utils.HasByFunc(*commonGroup, func(m models.ResourceGroupItem) bool {
+	isCommon := utils.HasByFunc(commonGroup, func(m models.ResourceGroupItem) bool {
 		return m.Gid == gid
 	})
 	if isCommon {
@@ -59,7 +59,9 @@ func canReadGroupResource(uid, gid string) bool {
 		log.Fatal("item is nil: ", gid)
 		return false
 	}
-	isAdmin := utils.Has(&models.AdminAccount, uid)
+	isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.AdminItem) bool {
+		return item.Uid == uid
+	})
 	return isAdmin || utils.Has(&item.UserIds, uid)
 }
 

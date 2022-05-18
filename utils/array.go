@@ -20,8 +20,8 @@ func Has[T comparable](slice *[]T, has T) bool {
 	return false
 }
 
-func HasByFunc[T interface{}](slice []T, is func(T) bool) bool {
-	for _, item := range slice {
+func HasByFunc[T interface{}](slice *[]T, is func(T) bool) bool {
+	for _, item := range *slice {
 		_has := is(item)
 		if _has {
 			return true
