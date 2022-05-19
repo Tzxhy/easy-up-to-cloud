@@ -11,7 +11,7 @@ import (
 
 var DB *gorm.DB
 
-var AdminAccount = make([]AdminItem, 0)
+var AdminAccount = make([]Admin, 0)
 
 var GroupResource = make([]ResourceGroupItem, 0)
 
@@ -46,7 +46,7 @@ func InitTables() {
 		&User{},
 		&Dir{},
 		&File{},
-		&AdminItem{},
+		&Admin{},
 		&ResourceGroupItem{},
 		&ResourceGroupDirItem{},
 	)
@@ -129,7 +129,7 @@ func shouldInsertDefaultGroup() {
 }
 
 func shouldInsertDefaultAdmin() {
-	var admins []AdminItem
+	var admins []Admin
 	result := DB.Find(&admins)
 	err := result.Error
 	if err != nil {
@@ -142,7 +142,7 @@ func shouldInsertDefaultAdmin() {
 		uid := utils.GenerateUid()
 		username := "admin"
 		password := utils.GeneratePassword()
-		adminItem := &AdminItem{
+		adminItem := &Admin{
 			uid,
 		}
 		DB.Create(&adminItem)
@@ -154,7 +154,7 @@ func shouldInsertDefaultAdmin() {
 }
 
 func refreshLocalKeyCache() {
-	var admins []AdminItem
+	var admins []Admin
 	DB.Find(&admins)
 	AdminAccount = admins
 

@@ -9,12 +9,12 @@ import (
 )
 
 type File struct {
-	Fid      string `json:"fid" gorm:"primarykey;type:string not null;"`
-	OwnerId  string `json:"-" gorm:"type:string not null;"`
-	Filename string `json:"filename" gorm:"type:string not null;"`
-	Filesize uint64 `json:"file_size" gorm:"type:integer not null;"`
+	Fid      string `json:"fid" gorm:"primaryKey;type:string not null;"`
+	OwnerId  string `json:"-" gorm:"index:file_unique;type:string not null;"`
+	Filename string `json:"filename" gorm:"index:file_unique;type:string not null;"`
+	Filesize uint64 `json:"file_size" gorm:"type:integer not null;check: filesize > 0;"`
 	// -1 为根目录
-	ParentDiD    string `json:"parent_did" gorm:"type:string not null;default:''"`
+	ParentDid    string `json:"parent_did" gorm:"index:file_unique;type:string not null;default:''"`
 	FileRealPath string `json:"-" gorm:"type:string not null;"`
 	CreateDate   string `json:"create_date" gorm:"type:DATETIME not null;default:CURRENT_TIMESTAMP"`
 }
@@ -31,7 +31,7 @@ func AddFile(owner_id string, dir_id string, filename string, file_size uint64, 
 		Fid:          fid,
 		OwnerId:      owner_id,
 		Filename:     filename,
-		ParentDiD:    dir_id,
+		ParentDid:    dir_id,
 		FileRealPath: file_path,
 		Filesize:     file_size,
 	})
@@ -49,7 +49,7 @@ func GetFileByName(filename string, owner_id string, parent_did string) *File {
 	result := DB.Where(&File{
 		OwnerId:   owner_id,
 		Filename:  filename,
-		ParentDiD: parent_did,
+		ParentDid: parent_did,
 	}).Take(&file)
 	err := result.Error
 	if err != nil {
@@ -75,7 +75,7 @@ func GetFileList(parent_id, owner_id string) *[]File {
 	var files []File
 	result := DB.Where(&File{
 		OwnerId:   owner_id,
-		ParentDiD: parent_id,
+		ParentDid: parent_id,
 	}).Find(&files)
 	err := result.Error
 	if err != nil {
@@ -136,7 +136,7 @@ func MoveFile(owner_id, fid, new_parent_did string) bool {
 		owner_id,
 		fid,
 	).Updates(&File{
-		ParentDiD: new_parent_did,
+		ParentDid: new_parent_did,
 	})
 	err := result.Error
 	utils.CheckErr(err)

@@ -3,6 +3,6 @@ web.exe
 easy_up_cloud.exe
 easy_up_cloud_linux
 easy_up_cloud_mac
-test.db
 web
 .DS_Store
+*.db

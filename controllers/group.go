@@ -59,10 +59,10 @@ func canReadGroupResource(uid, gid string) bool {
 		log.Fatal("item is nil: ", gid)
 		return false
 	}
-	isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.AdminItem) bool {
+	isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
 		return item.Uid == uid
 	})
-	return isAdmin || utils.Has(&item.UserIds, uid)
+	return isAdmin || utils.Has(utils.GetUserIds(item.UserIds), uid)
 }
 
 // 获取资源组列表
@@ -131,12 +131,14 @@ func GetGroupDir(c *gin.Context) {
 	commonGroup := models.GetCommonGroupResource()
 	allGroup := models.GetAllGroupResource()
 	var newList = make([]ResourceGroupDirItemWithOp, 0)
-	currentIsAdmin := utils.Has(&models.AdminAccount, uidStr)
+	currentIsAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
+		return uidStr == item.Uid
+	})
 	for _, item := range *list {
 		isCommon := false
 		isOwnerUser := false
 		if !currentIsAdmin {
-			isCommon = utils.HasByFunc(*commonGroup, func(m models.ResourceGroupItem) bool {
+			isCommon = utils.HasByFunc(commonGroup, func(m models.ResourceGroupItem) bool {
 				return m.Gid == item.Gid
 			})
 			gidItem := utils.Find(allGroup, func(m models.ResourceGroupItem) bool {
@@ -145,7 +147,7 @@ func GetGroupDir(c *gin.Context) {
 			if gidItem == nil {
 				log.Fatal(gidItem)
 			}
-			isOwnerUser = utils.Has(&gidItem.UserIds, uidStr)
+			isOwnerUser = utils.Has(utils.GetUserIds(gidItem.UserIds), uidStr)
 		}
 		if currentIsAdmin || isCommon || isOwnerUser {
 			opItem := &ResourceGroupDirItemWithOp{
@@ -271,11 +273,11 @@ func SetGroupAccount(c *gin.Context) {
 		var isSuccess = false
 		if utils.Has(&setGroupAccountReq.Groups, group.Gid) { // 有，则添加
 			isSuccess, _ = models.SetUidResourceGroup(group.Gid, *utils.Unique(
-				append(group.UserIds, setGroupAccountReq.Uid),
+				append(*utils.GetUserIds(group.UserIds), setGroupAccountReq.Uid),
 			))
 
 		} else { // 无，则去除
-			uids := *utils.Filter(&group.UserIds, func(t string) bool {
+			uids := *utils.Filter(utils.GetUserIds(group.UserIds), func(t string) bool {
 				return t != setGroupAccountReq.Uid
 			})
 			isSuccess, _ = models.SetUidResourceGroup(group.Gid, *utils.Unique(
@@ -415,7 +417,9 @@ func (h *HandleOperationGroupResourceDispatch) handle(o *OperationGroupResourceR
 func HandleDeleteRid(o *OperationGroupResourceReqInner) error {
 	// 定义为只有admin用户可以删除文件夹
 	// user用户可以删除自己分享的文件
-	isAdmin := utils.Has(&models.AdminAccount, o.Uid)
+	isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
+		return o.Uid == item.Uid
+	})
 	resourceItem := models.GetGroupResourceById(o.Rid)
 
 	if resourceItem.RType == models.GROUP_RESOURCE_FILE { // 文件，直接删
@@ -501,13 +505,15 @@ func SearchGroupResource(c *gin.Context) {
 
 	var newList = make([]ResourceGroupDirItemWithOp, 0)
 	commonGroup := models.GetCommonGroupResource()
-	currentIsAdmin := utils.Has(&models.AdminAccount, uidStr)
+	currentIsAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
+		return uidStr == item.Uid
+	})
 	allGroup := models.GetAllGroupResource()
 	for _, item := range *list {
 		isCommon := false
 		isOwnerUser := false
 		if !currentIsAdmin {
-			isCommon = utils.HasByFunc(*commonGroup, func(m models.ResourceGroupItem) bool {
+			isCommon = utils.HasByFunc(commonGroup, func(m models.ResourceGroupItem) bool {
 				return m.Gid == item.Gid
 			})
 			gidItem := utils.Find(allGroup, func(m models.ResourceGroupItem) bool {
@@ -516,7 +522,7 @@ func SearchGroupResource(c *gin.Context) {
 			if gidItem == nil {
 				log.Fatal(gidItem)
 			}
-			isOwnerUser = utils.Has(&gidItem.UserIds, uidStr)
+			isOwnerUser = utils.Has(utils.GetUserIds(gidItem.UserIds), uidStr)
 		}
 
 		if currentIsAdmin || isCommon || isOwnerUser {
@@ -551,7 +557,9 @@ func PreviewGroupResource(c *gin.Context) {
 	}
 
 	uid, _ := c.Get("uid")
-	currentIsAdmin := utils.Has(&models.AdminAccount, uid.(string))
+	currentIsAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
+		return uid.(string) == item.Uid
+	})
 
 	if !currentIsAdmin && !canReadGroupResource(uid.(string), resourceItem.Gid) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(
@@ -595,7 +603,9 @@ func DownloadGroupResource(c *gin.Context) {
 	}
 
 	uid, _ := c.Get("uid")
-	currentIsAdmin := utils.Has(&models.AdminAccount, uid.(string))
+	currentIsAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
+		return uid.(string) == item.Uid
+	})
 	log.Print("models.AdminAccount: ", models.AdminAccount)
 	log.Print("uid: ", uid)
 
@@ -637,7 +647,9 @@ func MoveResources(c *gin.Context) {
 
 	uid, _ := c.Get("uid")
 	uidStr := uid.(string)
-	isAdmin := utils.Has(&models.AdminAccount, uidStr)
+	isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
+		return uidStr == item.Uid
+	})
 	if isAdmin { // 管理员直接全权
 		count := models.MoveMultiGroups(moveResourcesReq.Rids, moveResourcesReq.ParentDid)
 

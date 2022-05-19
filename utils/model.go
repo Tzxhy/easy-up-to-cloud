@@ -1,5 +1,11 @@
 package utils
 
+import (
+	"strings"
+
+	"gitee.com/tzxhy/web/constants"
+)
+
 func GenerateUid() string {
 	return RandStringBytesMaskImprSrc(5)
 }
@@ -20,4 +26,9 @@ func GenerateRid() string {
 
 func GeneratePassword() string {
 	return RandStringBytesMaskImprSrc(16)
+}
+
+func GetUserIds(userIds string) *[]string {
+	arr := strings.Split(userIds, constants.USER_ID_SPLITTER)
+	return &arr
 }

@@ -53,7 +53,7 @@ func Login(c *gin.Context) {
 				}
 				c.SetCookie(constants.TOKEN_COOKIE_NAME, tokenString, timeSecond, "/", "", false, true)
 				models.SetKey(tokenString, 1)
-				isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.AdminItem) bool {
+				isAdmin := utils.HasByFunc(&models.AdminAccount, func(item models.Admin) bool {
 					return item.Uid == userInfo.Uid
 				})
 				c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{

@@ -55,7 +55,7 @@ func GetDir(c *gin.Context) {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
 				"did":         dirInfo.Did,
 				"dirname":     dirInfo.Dirname,
-				"parent_did":  dirInfo.ParentDiD,
+				"parent_did":  dirInfo.ParentDid,
 				"create_date": dirInfo.CreateDate,
 			}))
 		} else {

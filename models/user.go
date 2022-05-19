@@ -9,7 +9,7 @@ import (
 
 type User struct {
 	Uid        string `gorm:"primarykey"`
-	Username   string `gorm:"type:string not null"`
+	Username   string `gorm:"index;type:string not null"`
 	Password   string `gorm:"type:string not null"`
 	CreateDate string `gorm:"type:datetime;default:CURRENT_TIMESTAMP"`
 }
@@ -86,7 +86,7 @@ func GetUserByNameAndPassword(username, password string) *User {
 }
 
 func GetAdminUser() *[]User {
-	var admins []AdminItem
+	var admins []Admin
 	result := DB.Find(&admins)
 
 	err := result.Error
@@ -102,6 +102,5 @@ func GetAdminUser() *[]User {
 			users = append(users, *user)
 		}
 	}
-	log.Print("users: ", users)
 	return &users
 }

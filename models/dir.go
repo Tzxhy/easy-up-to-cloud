@@ -9,11 +9,11 @@ import (
 )
 
 type Dir struct {
-	Did     string `json:"did" gorm:"primarykey"`
-	OwnerId string `gorm:"primarykey;type:string not null"`
-	Dirname string `json:"dirname" gorm:"primarykey;type:string not null"`
+	Did     string `json:"did" gorm:"primaryKey"`
+	OwnerId string `gorm:"index:dir_unique;type:string not null"`
+	Dirname string `json:"dirname" gorm:"index:dir_unique;type:string not null"`
 	// -1 为根目录
-	ParentDiD  string `json:"parent_did" gorm:"primarykey;type:string not null;default:''"`
+	ParentDid  string `json:"parent_did" gorm:"index:dir_unique;type:string not null;default:''"`
 	CreateDate string `json:"create_date" gorm:"type:datetime;default:CURRENT_TIMESTAMP"`
 }
 
@@ -34,7 +34,7 @@ func AddDir(owner_id string, dirname string, parent_did string) (string, error) 
 		Did:       did,
 		OwnerId:   owner_id,
 		Dirname:   dirname,
-		ParentDiD: parent_did,
+		ParentDid: parent_did,
 	}
 
 	result := DB.Create(&dirItem)
@@ -46,7 +46,7 @@ func GetDirByName(name string, owner_id string, parent_did string) *Dir {
 	var dir Dir
 	result := DB.Where(&Dir{
 		OwnerId:   owner_id,
-		ParentDiD: parent_did,
+		ParentDid: parent_did,
 		Dirname:   name,
 	}).Take(&dir)
 	err := result.Error
@@ -73,7 +73,7 @@ func GetDirList(parent_id, owner_id string) *[]Dir {
 	var dirs []Dir
 	result := DB.Where(&Dir{
 		OwnerId:   owner_id,
-		ParentDiD: parent_id,
+		ParentDid: parent_id,
 	}).Find(&dirs)
 	err := result.Error
 	if err != nil {
@@ -104,7 +104,7 @@ func MoveDir(owner_id string, did string, new_parent_did string) bool {
 		OwnerId: owner_id,
 		Did:     did,
 	}).Updates(&Dir{
-		ParentDiD: new_parent_did,
+		ParentDid: new_parent_did,
 	})
 	err := result.Error
 	utils.CheckErr(err)
