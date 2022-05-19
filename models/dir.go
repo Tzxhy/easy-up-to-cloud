@@ -13,8 +13,8 @@ type Dir struct {
 	OwnerId string `gorm:"index:dir_unique;type:string not null"`
 	Dirname string `json:"dirname" gorm:"index:dir_unique;type:string not null"`
 	// -1 为根目录
-	ParentDid  string `json:"parent_did" gorm:"index:dir_unique;type:string not null;default:''"`
-	CreateDate string `json:"create_date" gorm:"type:datetime;default:CURRENT_TIMESTAMP"`
+	ParentDid  string `json:"parent_did" gorm:"index:dir_unique;type:string not null;default:'ROOT'"`
+	CreateDate string `json:"create_date" gorm:"type:datetime default CURRENT_TIMESTAMP;"`
 }
 
 func AddDir(owner_id string, dirname string, parent_did string) (string, error) {
@@ -37,8 +37,13 @@ func AddDir(owner_id string, dirname string, parent_did string) (string, error) 
 		ParentDid: parent_did,
 	}
 
-	result := DB.Create(&dirItem)
-	utils.CheckErr(result.Error)
+	result := DB.Select(
+		"Did", "OwnerId", "Dirname", "ParentDid",
+	).Create(&dirItem)
+	if result.Error != nil {
+		log.Print("error: ", result.Error)
+		return "", result.Error
+	}
 	return did, nil
 }
 
@@ -51,9 +56,11 @@ func GetDirByName(name string, owner_id string, parent_did string) *Dir {
 	}).Take(&dir)
 	err := result.Error
 	if err != nil {
-		log.Fatal(err)
+		return nil
 	}
-
+	if result.RowsAffected < 1 {
+		return nil
+	}
 	return &dir
 }
 func GetDir(did string, owner_id string) *Dir {
@@ -65,6 +72,9 @@ func GetDir(did string, owner_id string) *Dir {
 	err := result.Error
 	if err != nil {
 		log.Fatal(err)
+	}
+	if result.RowsAffected < 1 {
+		return nil
 	}
 	return &dir
 }
@@ -100,12 +110,13 @@ func MoveDir(owner_id string, did string, new_parent_did string) bool {
 	if new_parent_did != "" && GetDir(new_parent_did, owner_id) == nil {
 		return false
 	}
-	result := DB.Model(&Dir{
+	result := DB.Where(&Dir{
 		OwnerId: owner_id,
 		Did:     did,
 	}).Updates(&Dir{
 		ParentDid: new_parent_did,
 	})
+
 	err := result.Error
 	utils.CheckErr(err)
 
@@ -114,7 +125,7 @@ func MoveDir(owner_id string, did string, new_parent_did string) bool {
 }
 
 func RenameDir(owner_id string, did string, new_name string) bool {
-	result := DB.Model(&Dir{
+	result := DB.Where(&Dir{
 		OwnerId: owner_id,
 		Did:     did,
 	}).Updates(&Dir{
@@ -131,7 +142,7 @@ func RenameDir(owner_id string, did string, new_name string) bool {
 
 // 删除指定did文件夹（不会递归删除其下文件/文件夹）
 func DeleteSingleDir(owner_id string, did string) bool {
-	result := DB.Delete(&Dir{
+	result := DB.Delete(&Dir{}, &Dir{
 		OwnerId: owner_id,
 		Did:     did,
 	})

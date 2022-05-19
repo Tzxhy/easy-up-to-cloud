@@ -71,8 +71,8 @@ func GetDirList(c *gin.Context) {
 	var getDirInfo GetDirInfo
 	if err := c.ShouldBindQuery(&getDirInfo); err == nil {
 		uid, _ := c.Get("uid")
-		parentDirId := ""
-		if getDirInfo.DirId != nil {
+		parentDirId := constants.DIR_ROOT_ID
+		if getDirInfo.DirId != nil && *getDirInfo.DirId != "" {
 			parentDirId = *getDirInfo.DirId
 		}
 		dirsInfo := models.GetDirList(parentDirId, uid.(string))

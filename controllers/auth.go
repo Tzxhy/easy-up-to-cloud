@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -21,7 +20,6 @@ type LoginInfo struct {
 func Register(c *gin.Context) {
 	var loginInfo LoginInfo
 	if c.ShouldBind(&loginInfo) == nil {
-		log.Print(loginInfo)
 		if loginInfo.Username != "" && loginInfo.Password != "" {
 
 			alreadyHasUserName := models.HasUsername(loginInfo.Username)

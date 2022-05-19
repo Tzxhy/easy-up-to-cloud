@@ -8,10 +8,10 @@ import (
 )
 
 type User struct {
-	Uid        string `gorm:"primarykey"`
+	Uid        string `gorm:"primaryKey"`
 	Username   string `gorm:"index;type:string not null"`
 	Password   string `gorm:"type:string not null"`
-	CreateDate string `gorm:"type:datetime;default:CURRENT_TIMESTAMP"`
+	CreateDate string `gorm:"type:datetime not null default CURRENT_TIMESTAMP;"`
 }
 
 func IsUserOnline(username, password string) bool {
@@ -22,14 +22,14 @@ func HasUsername(username string) bool {
 	var count int64
 	DB.Where(&User{
 		Username: username,
-	}).Take(&User{}).Count(&count)
+	}).Limit(1).Find(&User{}).Count(&count)
 
 	return count > 0
 }
 
 func AddUser(username, password string) (string, error) {
 	uid := utils.GenerateUid()
-	result := DB.Create(&User{
+	result := DB.Omit("CreateDate").Create(&User{
 		Uid:      uid,
 		Username: username,
 		Password: password,
@@ -44,7 +44,7 @@ func AddUser(username, password string) (string, error) {
 }
 
 func AddUserWithId(uid, username, password string) (string, error) {
-	result := DB.Create(&User{
+	result := DB.Omit("CreateDate").Create(&User{
 		Uid:      uid,
 		Username: username,
 		Password: password,
@@ -58,7 +58,7 @@ func AddUserWithId(uid, username, password string) (string, error) {
 
 func GetUserById(id string) *User {
 	var user User
-	result := DB.Find(&user, &User{
+	result := DB.Find(&user, User{
 		Uid: id,
 	})
 
@@ -72,15 +72,18 @@ func GetUserById(id string) *User {
 
 func GetUserByNameAndPassword(username, password string) *User {
 	var user User
-	result := DB.Find(&user, &User{
+	result := DB.Where(&User{
 		Username: username,
 		Password: password,
-	})
+	}).Take(&user)
 
 	err := result.Error
 
 	if err != nil {
-		log.Fatal(err)
+		return nil
+	}
+	if result.RowsAffected < 1 {
+		return nil
 	}
 	return &user
 }

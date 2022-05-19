@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gitee.com/tzxhy/web/utils"
+	"gorm.io/gorm"
 )
 
 type Admin struct {
@@ -29,7 +30,7 @@ type ResourceGroupItem struct {
 	Gid        string            `json:"gid" gorm:"primaryKey;type:string not null;"`
 	Name       string            `json:"name" gorm:"index;type:string not null;"`
 	UserIds    string            `json:"-" gorm:"type:string not null;default:''"`
-	CreateDate string            `json:"create_date" gorm:"type:datetime not null;default:CURRENT_TIMESTAMP"`
+	CreateDate string            `json:"create_date" gorm:"type:datetime not null default CURRENT_TIMESTAMP;"`
 	GroupType  ResourceGroupType `json:"-" gorm:"type:integer not null;default:0;check: group_type >= 0;"`
 }
 
@@ -39,11 +40,11 @@ type ResourceGroupDirItem struct {
 	Fid        string         `json:"fid" gorm:"type:string;default:''"`
 	Did        string         `json:"did" gorm:"type:string;default:''"`
 	Name       string         `json:"name" gorm:"index:resource_unique;type:string not null;"`
-	ParentDid  string         `json:"parent_did" gorm:"index:resource_unique;type:string not null;default:''"`
+	ParentDid  string         `json:"parent_did" gorm:"index:resource_unique;type:string not null;default:'ROOT'"`
 	RType      RType          `json:"r_type" gorm:"type:integer not null;"`
 	Uid        string         `json:"-" gorm:"type:string not null;"`
-	CreateDate string         `json:"create_date" gorm:"type:datetime not null;default:CURRENT_TIMESTAMP"`
-	ExpireDate sql.NullString `json:"expire_date" gorm:"type:datetime;default:''"`
+	CreateDate string         `json:"create_date" gorm:"type:datetime not null default CURRENT_TIMESTAMP;"`
+	ExpireDate sql.NullString `json:"expire_date" gorm:"type:integer default 0;"`
 }
 
 func GetResourceGroup(uid string) *[]ResourceGroupItem {
@@ -150,11 +151,19 @@ func SetUidResourceGroup(gid string, user_ids []string) (succ bool, err error) {
 }
 func CreateGroup(name string, groupType ResourceGroupType) (gid string, err error) {
 	gid = utils.GenerateGid()
-	result := DB.Create(&ResourceGroupItem{
+	result := DB.Select("Gid", "Name", "GroupType").Create(&ResourceGroupItem{
 		Gid:       gid,
 		Name:      name,
 		GroupType: groupType,
 	})
+	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("Gid", "Name", "GroupType").Create(&ResourceGroupItem{
+			Gid:       gid,
+			Name:      name,
+			GroupType: groupType,
+		})
+	})
+	log.Println("sql: ", sql)
 	err = result.Error
 
 	if err != nil {
@@ -167,7 +176,7 @@ func CreateGroup(name string, groupType ResourceGroupType) (gid string, err erro
 
 func CreateGroupDir(gid, parent_did, name, uid string) (rid string, err error) {
 	rid = utils.GenerateRid()
-	result := DB.Create(&ResourceGroupDirItem{
+	result := DB.Select("Gid", "Rid", "ParentDid", "Name", "Uid", "RType").Create(&ResourceGroupDirItem{
 		Gid:       gid,
 		Rid:       rid,
 		ParentDid: parent_did,

@@ -14,9 +14,9 @@ type File struct {
 	Filename string `json:"filename" gorm:"index:file_unique;type:string not null;"`
 	Filesize uint64 `json:"file_size" gorm:"type:integer not null;check: filesize > 0;"`
 	// -1 为根目录
-	ParentDid    string `json:"parent_did" gorm:"index:file_unique;type:string not null;default:''"`
+	ParentDid    string `json:"parent_did" gorm:"index:file_unique;type:string not null;default:'ROOT'"`
 	FileRealPath string `json:"-" gorm:"type:string not null;"`
-	CreateDate   string `json:"create_date" gorm:"type:DATETIME not null;default:CURRENT_TIMESTAMP"`
+	CreateDate   string `json:"create_date" gorm:"type:DATETIME not null default CURRENT_TIMESTAMP;"`
 }
 
 //
@@ -27,7 +27,7 @@ func AddFile(owner_id string, dir_id string, filename string, file_size uint64, 
 		return "", errors.New(constants.TIPS_HAS_SAME_FILE)
 	}
 	fid := utils.GenerateFid()
-	result := DB.Create(&File{
+	result := DB.Omit("CreateDate").Create(&File{
 		Fid:          fid,
 		OwnerId:      owner_id,
 		Filename:     filename,
@@ -54,6 +54,9 @@ func GetFileByName(filename string, owner_id string, parent_did string) *File {
 	err := result.Error
 	if err != nil {
 		log.Fatal(err)
+	}
+	if result.RowsAffected < 1 {
+		return nil
 	}
 	return &file
 }
