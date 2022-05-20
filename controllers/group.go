@@ -106,7 +106,7 @@ func GetGroupDir(c *gin.Context) {
 	uid, _ := c.Get("uid")
 	uidStr := uid.(string)
 
-	if getGroupDirReq.DirId != "" {
+	if getGroupDirReq.DirId != "" { // 查看是否有这个rid
 		originResource := models.GetGroupResourceById(getGroupDirReq.DirId)
 		if originResource == nil {
 			c.JSON(http.StatusOK, utils.ReturnJSON(
@@ -126,8 +126,11 @@ func GetGroupDir(c *gin.Context) {
 			return
 		}
 	}
-
-	list := models.GetGroupDir(getGroupDirReq.DirId)
+	did := constants.DIR_ROOT_ID
+	if getGroupDirReq.DirId != "" {
+		did = getGroupDirReq.DirId
+	}
+	list := models.GetGroupDir(did)
 	commonGroup := models.GetCommonGroupResource()
 	allGroup := models.GetAllGroupResource()
 	var newList = make([]ResourceGroupDirItemWithOp, 0)
@@ -152,7 +155,7 @@ func GetGroupDir(c *gin.Context) {
 		if currentIsAdmin || isCommon || isOwnerUser {
 			opItem := &ResourceGroupDirItemWithOp{
 				item,
-				currentIsAdmin || item.Uid == uidStr,
+				currentIsAdmin || item.UserId == uidStr,
 			}
 			newList = append(newList, *opItem)
 		}
@@ -296,11 +299,11 @@ func SetGroupAccount(c *gin.Context) {
 
 type ShareToGroupReq struct {
 	// Fid
-	Fid        string `json:"fid" form:"fid" binding:"required"`
-	Name       string `json:"name" form:"name" binding:"required"`
-	ParentDid  string `json:"parent_did" form:"parent_did" binding:"required"`
-	RType      uint8  `json:"r_type" form:"r_type" binding:"required"`
-	ExpireDate string `json:"expire_date" form:"expire_date"`
+	Fid        string       `json:"fid" form:"fid" binding:"required"`
+	Name       string       `json:"name" form:"name" binding:"required"`
+	ParentDid  string       `json:"parent_did" form:"parent_did" binding:"required"`
+	RType      models.RType `json:"r_type" form:"r_type" binding:"required"`
+	ExpireDate int64        `json:"expire_date" form:"expire_date"`
 }
 
 // 分享资源到资源组
@@ -528,7 +531,7 @@ func SearchGroupResource(c *gin.Context) {
 		if currentIsAdmin || isCommon || isOwnerUser {
 			opItem := &ResourceGroupDirItemWithOp{
 				item,
-				item.Uid == uidStr,
+				item.UserId == uidStr,
 			}
 			newList = append(newList, *opItem)
 		}
@@ -569,16 +572,7 @@ func PreviewGroupResource(c *gin.Context) {
 		))
 		return
 	}
-	file := models.GetFileById(resourceItem.Fid)
-	if file == nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(
-			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
-			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
-			nil,
-		))
-		return
-	}
-	previewFile(resourceItem.Fid, file.OwnerId, c)
+	previewFile(resourceItem.Fid, resourceItem.UserId, resourceItem.Name, c)
 }
 
 type DownloadGroupResourceReq struct {
@@ -617,16 +611,7 @@ func DownloadGroupResource(c *gin.Context) {
 		))
 		return
 	}
-	file := models.GetFileById(resourceItem.Fid)
-	if file == nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(
-			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Code,
-			constants.CODE_GROUP_RESOURCE_NOT_FOUND_TIPS.Tip,
-			nil,
-		))
-		return
-	}
-	downloadFile(resourceItem.Fid, file.OwnerId, c)
+	downloadFile(resourceItem.Fid, resourceItem.UserId, resourceItem.Name, c)
 }
 
 func GroupUserConfig(c *gin.Context) {

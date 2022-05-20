@@ -20,28 +20,80 @@ func ListDir(c *gin.Context) {
 }
 
 type UploadFileReq struct {
-	ParentDid *string `form:"parent_did"`
+	ParentDid string `form:"parent_did"`
+	Filename  string `form:"filename" binding:"required"`
+}
+
+func canUploadFile(uid, filename, parent_did string) bool {
+	// 检查是否有同名
+	sameNameFile := models.GetFileByName(filename, uid, parent_did)
+	return sameNameFile == nil
+}
+
+func CanUploadFile(c *gin.Context) {
+	var uploadFileReq UploadFileReq
+	if c.ShouldBindQuery(&uploadFileReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	did := constants.DIR_ROOT_ID
+	if uploadFileReq.ParentDid != "" {
+		did = uploadFileReq.ParentDid
+	}
+	uploadFileReq.Filename, _ = url.QueryUnescape(uploadFileReq.Filename)
+	did, _ = url.QueryUnescape(did)
+
+	uid, _ := c.Get("uid")
+
+	can := canUploadFile(uid.(string), uploadFileReq.Filename, did)
+	c.JSON(http.StatusOK, utils.ReturnJSON(
+		constants.CODE_OK,
+		"",
+		&gin.H{
+			"can_upload": can,
+		},
+	))
 }
 
 // 上传文件
 func UploadFile(c *gin.Context) {
-	myFile, err := c.FormFile("file")
-	if err != nil {
-		log.Print("UploadFile err: ", err)
+	log.Print("enter upload File")
+
+	var uploadFileReq UploadFileReq
+	if err := c.ShouldBindQuery(&uploadFileReq); err != nil {
+		log.Print("err: ", err)
 		utils.ReturnParamNotValid(c)
 		return
 	}
+	did := constants.DIR_ROOT_ID
+	if uploadFileReq.ParentDid != "" {
+		did = uploadFileReq.ParentDid
+	}
+	uploadFileReq.Filename, _ = url.QueryUnescape(uploadFileReq.Filename)
+	did, _ = url.QueryUnescape(did)
 
 	uid, _ := c.Get("uid")
-	did := ""
-	var uploadFileReq UploadFileReq
-	err = c.ShouldBind(&uploadFileReq)
-	if err != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+
+	if !canUploadFile(uid.(string), uploadFileReq.Filename, did) {
+		c.AbortWithStatusJSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_UPLOAD_FILE_WITH_SAME_NAME_TIPS.Code,
+			constants.CODE_UPLOAD_FILE_WITH_SAME_NAME_TIPS.Tip,
+			nil,
+		))
 		return
 	}
-	if uploadFileReq.ParentDid != nil {
-		did = *uploadFileReq.ParentDid
+
+	// 继续接收文件
+	log.Print("getFile")
+	myFile, err := c.FormFile("file")
+	if err != nil {
+		log.Print("UploadFile err: ", err)
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_UPLOAD_FILE_PARSE_ERROR_TIPS.Code,
+			constants.CODE_UPLOAD_FILE_PARSE_ERROR_TIPS.Tip,
+			nil,
+		))
+		return
 	}
 
 	file := models.GetFileByName(myFile.Filename, uid.(string), did)
@@ -84,13 +136,13 @@ func DownloadFile(c *gin.Context) {
 	var fileIdReq FileIdReq
 	if c.ShouldBindQuery(&fileIdReq) == nil {
 		uid, _ := c.Get("uid")
-		downloadFile(fileIdReq.Fid, uid.(string), c)
+		downloadFile(fileIdReq.Fid, uid.(string), "", c)
 		return
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 }
 
-func downloadFile(fid, uid string, c *gin.Context) {
+func downloadFile(fid, uid, filename string, c *gin.Context) {
 	fileInfo := models.GetFile(fid, uid)
 	if fileInfo == nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST_TIPS.Code, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
@@ -100,8 +152,12 @@ func downloadFile(fid, uid string, c *gin.Context) {
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
+	targetFileName := filename
+	if targetFileName == "" {
+		targetFileName = fileInfo.Filename
+	}
 	c.Header("Content-Type", contentType)
-	c.Header("Content-Disposition", "attachment; filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
+	c.Header("Content-Disposition", "attachment; filename=\""+url.QueryEscape(targetFileName)+"\"")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.File(fileInfo.FileRealPath)
 }
@@ -111,13 +167,13 @@ func PreviewFile(c *gin.Context) {
 	var fileIdReq FileIdReq
 	if c.ShouldBindQuery(&fileIdReq) == nil {
 		uid, _ := c.Get("uid")
-		previewFile(fileIdReq.Fid, uid.(string), c)
+		previewFile(fileIdReq.Fid, uid.(string), "", c)
 		return
 	}
 	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 }
 
-func previewFile(fid, uid string, c *gin.Context) {
+func previewFile(fid, uid, filename string, c *gin.Context) {
 	fileInfo := models.GetFile(fid, uid)
 	if fileInfo == nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
@@ -127,8 +183,12 @@ func previewFile(fid, uid string, c *gin.Context) {
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
+	targetFileName := filename
+	if targetFileName == "" {
+		targetFileName = fileInfo.Filename
+	}
 	c.Header("Content-Type", contentType)
-	c.Header("Content-Disposition", "inline;filename=\""+url.QueryEscape(fileInfo.Filename)+"\"")
+	c.Header("Content-Disposition", "inline;filename=\""+url.QueryEscape(targetFileName)+"\"")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.File(fileInfo.FileRealPath)
 }

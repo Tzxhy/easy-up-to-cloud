@@ -47,6 +47,7 @@ func InitRouter() *gin.Engine {
 		fs.POST("move-file", controllers.MoveFile)
 		fs.POST("rename-file", controllers.RenameFile)
 		fs.POST("upload", controllers.UploadFile)
+		fs.GET("can-upload", controllers.CanUploadFile)
 		fs.GET("download", controllers.DownloadFile)
 		fs.GET("preview", controllers.PreviewFile)
 		fs.POST("delete", controllers.DeleteFile)

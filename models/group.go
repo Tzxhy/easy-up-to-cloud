@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"gitee.com/tzxhy/web/utils"
-	"gorm.io/gorm"
 )
 
 type Admin struct {
@@ -30,21 +29,22 @@ type ResourceGroupItem struct {
 	Gid        string            `json:"gid" gorm:"primaryKey;type:string not null;"`
 	Name       string            `json:"name" gorm:"index;type:string not null;"`
 	UserIds    string            `json:"-" gorm:"type:string not null;default:''"`
-	CreateDate string            `json:"create_date" gorm:"type:datetime not null default CURRENT_TIMESTAMP;"`
 	GroupType  ResourceGroupType `json:"-" gorm:"type:integer not null;default:0;check: group_type >= 0;"`
+	CreateDate int64             `json:"create_date" gorm:"autoUpdateTime:milli"`
 }
 
 type ResourceGroupDirItem struct {
-	Gid        string         `json:"gid" gorm:"index:resource_unique;type:string not null;"`
-	Rid        string         `json:"rid" gorm:"primaryKey;type:string not null;"`
-	Fid        string         `json:"fid" gorm:"type:string;default:''"`
-	Did        string         `json:"did" gorm:"type:string;default:''"`
-	Name       string         `json:"name" gorm:"index:resource_unique;type:string not null;"`
-	ParentDid  string         `json:"parent_did" gorm:"index:resource_unique;type:string not null;default:'ROOT'"`
-	RType      RType          `json:"r_type" gorm:"type:integer not null;"`
-	Uid        string         `json:"-" gorm:"type:string not null;"`
-	CreateDate string         `json:"create_date" gorm:"type:datetime not null default CURRENT_TIMESTAMP;"`
-	ExpireDate sql.NullString `json:"expire_date" gorm:"type:integer default 0;"`
+	Gid        string `json:"gid" gorm:"index:resource_unique;type:string not null;"`
+	Rid        string `json:"rid" gorm:"primaryKey;type:string not null;"`
+	Fid        string `json:"fid" gorm:"type:string;default:''"`
+	Did        string `json:"did" gorm:"type:string;default:''"`
+	Name       string `json:"name" gorm:"index:resource_unique;type:string not null;"`
+	ParentDid  string `json:"parent_did" gorm:"index:resource_unique;type:string not null;default:'ROOT'"`
+	RType      RType  `json:"r_type" gorm:"type:integer not null;"`
+	User       User   `json:"-" gorm:"references:Uid"`
+	UserId     string `json:"-" gorm:"type:string not null;"`
+	CreateDate int64  `json:"create_date" gorm:"autoUpdateTime:milli"`
+	ExpireDate int64  `json:"expire_date" gorm:"type:integer default -1;"`
 }
 
 func GetResourceGroup(uid string) *[]ResourceGroupItem {
@@ -151,19 +151,11 @@ func SetUidResourceGroup(gid string, user_ids []string) (succ bool, err error) {
 }
 func CreateGroup(name string, groupType ResourceGroupType) (gid string, err error) {
 	gid = utils.GenerateGid()
-	result := DB.Select("Gid", "Name", "GroupType").Create(&ResourceGroupItem{
+	result := DB.Create(&ResourceGroupItem{
 		Gid:       gid,
 		Name:      name,
 		GroupType: groupType,
 	})
-	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
-		return tx.Select("Gid", "Name", "GroupType").Create(&ResourceGroupItem{
-			Gid:       gid,
-			Name:      name,
-			GroupType: groupType,
-		})
-	})
-	log.Println("sql: ", sql)
 	err = result.Error
 
 	if err != nil {
@@ -176,13 +168,14 @@ func CreateGroup(name string, groupType ResourceGroupType) (gid string, err erro
 
 func CreateGroupDir(gid, parent_did, name, uid string) (rid string, err error) {
 	rid = utils.GenerateRid()
-	result := DB.Select("Gid", "Rid", "ParentDid", "Name", "Uid", "RType").Create(&ResourceGroupDirItem{
-		Gid:       gid,
-		Rid:       rid,
-		ParentDid: parent_did,
-		Name:      name,
-		Uid:       uid,
-		RType:     GROUP_RESOURCE_DIR,
+	result := DB.Create(&ResourceGroupDirItem{
+		Gid:        gid,
+		Rid:        rid,
+		ParentDid:  parent_did,
+		Name:       name,
+		UserId:     uid,
+		RType:      GROUP_RESOURCE_DIR,
+		ExpireDate: -1,
 	})
 	err = result.Error
 
@@ -226,13 +219,19 @@ func DeleteOrInsertAdminAccount(uid string, isAdmin bool) bool {
 	return row == 1
 }
 
-func ShareFileToGroup(gid, fid, name, uid, parent_did, expire_date string, rtype uint8) (rid string, err error) {
+func ShareFileToGroup(gid, fid, name, uid, parent_did string, expire_date int64, rtype RType) (rid string, err error) {
 	rid = utils.GenerateRid()
-	ret := DB.Exec(
-		`insert into user_group_resource (gid, rid, fid, name, parent_did, rtype, uid, expire_date)
-		values (?, ?, ?, ?, ?, ?, ?, ?)
-	`, gid, rid, fid, name, parent_did, rtype, uid, expire_date)
-	err = ret.Error
+	result := DB.Create(&ResourceGroupDirItem{
+		Gid:        gid,
+		Rid:        rid,
+		Fid:        fid,
+		Name:       name,
+		ParentDid:  parent_did,
+		RType:      rtype,
+		UserId:     uid,
+		ExpireDate: int64(expire_date),
+	})
+	err = result.Error
 
 	if err != nil {
 		return "", err

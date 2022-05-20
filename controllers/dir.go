@@ -17,23 +17,26 @@ type NewDirInfo struct {
 // 创建目录
 func CreateDir(c *gin.Context) {
 	var newDirInfo NewDirInfo
-	err := c.ShouldBind(&newDirInfo)
+	if c.ShouldBind(&newDirInfo) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	uid, _ := c.Get("uid")
+	parentDirId := constants.DIR_ROOT_ID
+	if newDirInfo.ParentDirId != nil && *newDirInfo.ParentDirId != "" {
+		parentDirId = *newDirInfo.ParentDirId
+	}
+	did, err := models.AddDir(uid.(string), newDirInfo.Name, parentDirId)
 	if err == nil {
-		uid, _ := c.Get("uid")
-		parentDirId := ""
-		if newDirInfo.ParentDirId != nil {
-			parentDirId = *newDirInfo.ParentDirId
-		}
-		did, err := models.AddDir(uid.(string), newDirInfo.Name, parentDirId)
-		if err == nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
-				"did": did,
-			}))
-		} else {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_UNHANDLED_ERROR, err.Error(), nil))
-		}
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+			"did": did,
+		}))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_CREATE_DIR_PARAM_NOT_VALID_TIPS.Code, constants.CODE_CREATE_DIR_PARAM_NOT_VALID_TIPS.Tip, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_CREATE_DIR_WITH_ERROR_TIPS.Code,
+			constants.CODE_CREATE_DIR_WITH_ERROR_TIPS.Tip,
+			nil,
+		))
 	}
 }
 
@@ -44,58 +47,61 @@ type GetDirInfo struct {
 // 获取目录信息
 func GetDir(c *gin.Context) {
 	var getDirInfo GetDirInfo
-	if err := c.ShouldBindQuery(&getDirInfo); err == nil {
-		uid, _ := c.Get("uid")
-		parentDirId := ""
-		if getDirInfo.DirId != nil {
-			parentDirId = *getDirInfo.DirId
-		}
-		dirInfo := models.GetDir(parentDirId, uid.(string))
-		if dirInfo != nil {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
-				"did":         dirInfo.Did,
-				"dirname":     dirInfo.Dirname,
-				"parent_did":  dirInfo.ParentDid,
-				"create_date": dirInfo.CreateDate,
-			}))
-		} else {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS.Code, constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS.Tip, nil))
-		}
-	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+	if c.ShouldBindQuery(&getDirInfo) != nil {
+		utils.ReturnParamNotValid(c)
+		return
 	}
+
+	uid, _ := c.Get("uid")
+	parentDirId := constants.DIR_ROOT_ID
+	if getDirInfo.DirId != nil && *getDirInfo.DirId != "" {
+		parentDirId = *getDirInfo.DirId
+	}
+	dirInfo := models.GetDir(parentDirId, uid.(string))
+	if dirInfo != nil {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+			"did":         dirInfo.Did,
+			"dirname":     dirInfo.Dirname,
+			"parent_did":  dirInfo.ParentDid,
+			"create_date": dirInfo.CreateDate,
+		}))
+	} else {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS.Code, constants.CODE_QUERY_DIR_INFO_WITH_EMPTY_RES_TIPS.Tip, nil))
+	}
+
 }
 
 // 获取该目录下所有子目录，文件列表
 func GetDirList(c *gin.Context) {
 	var getDirInfo GetDirInfo
-	if err := c.ShouldBindQuery(&getDirInfo); err == nil {
-		uid, _ := c.Get("uid")
-		parentDirId := constants.DIR_ROOT_ID
-		if getDirInfo.DirId != nil && *getDirInfo.DirId != "" {
-			parentDirId = *getDirInfo.DirId
-		}
-		dirsInfo := models.GetDirList(parentDirId, uid.(string))
-		filesInfo := models.GetFileList(parentDirId, uid.(string))
-		returnDirs := make([]models.Dir, 0)
-		returnFiles := make([]models.File, 0)
-		if dirsInfo != nil {
-			if len(*dirsInfo) > 0 {
-				returnDirs = *dirsInfo
-			}
-		}
-		if filesInfo != nil {
-			if len(*filesInfo) > 0 {
-				returnFiles = *filesInfo
-			}
-		}
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
-			"dirs":  returnDirs,
-			"files": returnFiles,
-		}))
-	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID_TIPS.Code, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+	if c.ShouldBindQuery(&getDirInfo) != nil {
+		utils.ReturnParamNotValid(c)
+		return
 	}
+	uid, _ := c.Get("uid")
+	parentDirId := constants.DIR_ROOT_ID
+	if getDirInfo.DirId != nil && *getDirInfo.DirId != "" {
+		parentDirId = *getDirInfo.DirId
+	}
+	dirsInfo := models.GetDirList(parentDirId, uid.(string))
+	filesInfo := models.GetFileList(parentDirId, uid.(string))
+	returnDirs := make([]models.Dir, 0)
+	returnFiles := make([]models.File, 0)
+	if dirsInfo != nil {
+		if len(*dirsInfo) > 0 {
+			returnDirs = *dirsInfo
+		}
+	}
+	if filesInfo != nil {
+		if len(*filesInfo) > 0 {
+			returnFiles = *filesInfo
+		}
+	}
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+		"dirs":  returnDirs,
+		"files": returnFiles,
+	}))
+
 }
 
 type SearchFileOrDirReq struct {
@@ -105,30 +111,31 @@ type SearchFileOrDirReq struct {
 // 查找目录或者文件
 func SearchFileOrDir(c *gin.Context) {
 	var searchInfo SearchFileOrDirReq
-	if c.ShouldBind(&searchInfo) == nil {
-		name := searchInfo.Name
-		uid, _ := c.Get("uid")
-		dirsInfo := models.SearchDirList(uid.(string), name)
-		filesInfo := models.SearchFileList(uid.(string), name)
-		returnDirs := make([]models.Dir, 0)
-		returnFiles := make([]models.File, 0)
-		if dirsInfo != nil {
-			if len(*dirsInfo) > 0 {
-				returnDirs = *dirsInfo
-			}
-		}
-		if filesInfo != nil {
-			if len(*filesInfo) > 0 {
-				returnFiles = *filesInfo
-			}
-		}
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
-			"dirs":  returnDirs,
-			"files": returnFiles,
-		}))
-	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+	if c.ShouldBind(&searchInfo) != nil {
+		utils.ReturnParamNotValid(c)
+		return
 	}
+	name := searchInfo.Name
+	uid, _ := c.Get("uid")
+	dirsInfo := models.SearchDirList(uid.(string), name)
+	filesInfo := models.SearchFileList(uid.(string), name)
+	returnDirs := make([]models.Dir, 0)
+	returnFiles := make([]models.File, 0)
+	if dirsInfo != nil {
+		if len(*dirsInfo) > 0 {
+			returnDirs = *dirsInfo
+		}
+	}
+	if filesInfo != nil {
+		if len(*filesInfo) > 0 {
+			returnFiles = *filesInfo
+		}
+	}
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", &gin.H{
+		"dirs":  returnDirs,
+		"files": returnFiles,
+	}))
+
 }
 
 type DeleteDirInfo struct {
@@ -147,7 +154,7 @@ func DeleteDir(c *gin.Context) {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 		return
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+		utils.ReturnParamNotValid(c)
 		return
 	}
 }
@@ -178,21 +185,19 @@ type DeleteDirAndFileListReq struct {
 func DeleteDirAndFileList(c *gin.Context) {
 	var deleteDirAndFileListReq DeleteDirAndFileListReq
 	err := c.ShouldBind(&deleteDirAndFileListReq)
-	if err == nil {
-		// models.Get
-		uid, _ := c.Get("uid")
-		for _, dir := range deleteDirAndFileListReq.DirsId {
-			deleteDir(uid.(string), dir)
-		}
-		for _, file := range deleteDirAndFileListReq.FilesId {
-			deleteFile(file, uid.(string))
-		}
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
-		return
-	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, err.Error(), nil))
+	if err != nil {
+		utils.ReturnParamNotValid(c)
 		return
 	}
+
+	uid, _ := c.Get("uid")
+	for _, dir := range deleteDirAndFileListReq.DirsId {
+		deleteDir(uid.(string), dir)
+	}
+	for _, file := range deleteDirAndFileListReq.FilesId {
+		deleteFile(file, uid.(string))
+	}
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 }
 
 type RenameDirReq struct {
@@ -204,15 +209,19 @@ type RenameDirReq struct {
 func RenameDir(c *gin.Context) {
 	var renameDirReq RenameDirReq
 	if c.ShouldBind(&renameDirReq) != nil {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+		utils.ReturnParamNotValid(c)
 		return
 	}
 	uid, _ := c.Get("uid")
-	succ := models.RenameDir(uid.(string), renameDirReq.Did, renameDirReq.Name)
-	if succ {
+	ok := models.RenameDir(uid.(string), renameDirReq.Did, renameDirReq.Name)
+	if ok {
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_RENAME_DIR_WITH_ERROR, constants.CODE_RENAME_DIR_WITH_ERROR_TIPS.Tip, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_RENAME_DIR_WITH_ERROR,
+			constants.CODE_RENAME_DIR_WITH_ERROR_TIPS.Tip,
+			nil,
+		))
 	}
 }
 
@@ -224,17 +233,22 @@ type MoveDirReq struct {
 // 移动文件夹
 func MoveDir(c *gin.Context) {
 	var moveDirReq MoveDirReq
-	if c.ShouldBind(&moveDirReq) == nil {
-		uid, _ := c.Get("uid")
-		succ := models.MoveDir(uid.(string), moveDirReq.Did, moveDirReq.NewParentDid)
-		if succ {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
-			return
-		} else {
-			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_MOVE_DIR_WITH_ERROR, constants.CODE_MOVE_DIR_WITH_ERROR_TIPS.Tip, nil))
-		}
+	if c.ShouldBind(&moveDirReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+
+	uid, _ := c.Get("uid")
+	ok := models.MoveDir(uid.(string), moveDirReq.Did, moveDirReq.NewParentDid)
+	if ok {
+		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+		return
 	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
+		c.JSON(http.StatusOK, utils.ReturnJSON(
+			constants.CODE_MOVE_DIR_WITH_ERROR,
+			constants.CODE_MOVE_DIR_WITH_ERROR_TIPS.Tip,
+			nil,
+		))
 	}
 }
 
@@ -247,17 +261,16 @@ type MoveDirsAndFilesReq struct {
 // 移动文件夹
 func MoveDirsAndFiles(c *gin.Context) {
 	var moveDirsAndFilesReq MoveDirsAndFilesReq
-	if c.ShouldBind(&moveDirsAndFilesReq) == nil {
-		uid, _ := c.Get("uid")
-		for _, dir := range moveDirsAndFilesReq.Dirs {
-			models.MoveDir(uid.(string), dir, moveDirsAndFilesReq.NewParentDid)
-		}
-		for _, fileId := range moveDirsAndFilesReq.FileIds {
-			models.MoveFile(uid.(string), fileId, moveDirsAndFilesReq.NewParentDid)
-		}
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
+	if c.ShouldBind(&moveDirsAndFilesReq) != nil {
+		utils.ReturnParamNotValid(c)
 		return
-	} else {
-		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_PARAMS_NOT_VALID, constants.CODE_PARAMS_NOT_VALID_TIPS.Tip, nil))
 	}
+	uid, _ := c.Get("uid")
+	for _, dir := range moveDirsAndFilesReq.Dirs {
+		models.MoveDir(uid.(string), dir, moveDirsAndFilesReq.NewParentDid)
+	}
+	for _, fileId := range moveDirsAndFilesReq.FileIds {
+		models.MoveFile(uid.(string), fileId, moveDirsAndFilesReq.NewParentDid)
+	}
+	c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 }

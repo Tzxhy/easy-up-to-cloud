@@ -29,7 +29,7 @@ func HasUsername(username string) bool {
 
 func AddUser(username, password string) (string, error) {
 	uid := utils.GenerateUid()
-	result := DB.Omit("CreateDate").Create(&User{
+	result := DB.Create(&User{
 		Uid:      uid,
 		Username: username,
 		Password: password,
@@ -44,7 +44,7 @@ func AddUser(username, password string) (string, error) {
 }
 
 func AddUserWithId(uid, username, password string) (string, error) {
-	result := DB.Omit("CreateDate").Create(&User{
+	result := DB.Create(&User{
 		Uid:      uid,
 		Username: username,
 		Password: password,
@@ -75,7 +75,7 @@ func GetUserByNameAndPassword(username, password string) *User {
 	result := DB.Where(&User{
 		Username: username,
 		Password: password,
-	}).Take(&user)
+	}).Limit(1).Find(&user)
 
 	err := result.Error
 

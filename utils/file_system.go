@@ -19,7 +19,7 @@ func MakeSurePathExists(dirName string) {
 	if IsPathExists(dirName) {
 		return
 	}
-	parentDir, _ := filepath.Split(dirName)
+	parentDir := filepath.Dir(dirName)
 	MakeSurePathExists(parentDir)
 	os.Mkdir(dirName, 0777)
 }
