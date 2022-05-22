@@ -49,6 +49,7 @@ func InitTables() {
 		&Admin{},
 		&ResourceGroupItem{},
 		&ResourceGroupDirItem{},
+		&ShareItem{},
 	)
 	// 	_, err := DB.Exec(`
 	// -- 用户

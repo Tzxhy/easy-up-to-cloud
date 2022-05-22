@@ -74,7 +74,13 @@ func InitRouter() *gin.Engine {
 
 	// TODO
 	// 分享
-	// share := v1.Group("share")
+	share := v1.Group("share")
+	{
+		share.POST("create", middlewares.NeedAuth(), controllers.CreateShare)
+		share.GET("list", controllers.GetShareList)
+		share.GET("detail", controllers.GetShareDetail)
+		share.GET("download", controllers.ShareDownload)
+	}
 	// 离线下载
 	// offlineDownload := v1.Group("download")
 	// 游客

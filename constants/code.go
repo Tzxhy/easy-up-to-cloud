@@ -177,6 +177,21 @@ var CODE_GROUP_CREATE_DIR_HAS_NAME_TIPS = &CodeWithTip{
 	"已有同名资源目录",
 }
 
+// 分享
+const (
+	CODE_SHARE_FAIL = 500_0000 + iota
+	CODE_SHARE_ITEM_NOT_FOUND
+)
+
+var CODE_SHARE_FAIL_TIPS = &CodeWithTip{
+	CODE_SHARE_FAIL,
+	"分享失败",
+}
+var CODE_SHARE_ITEM_NOT_FOUND_TIPS = &CodeWithTip{
+	CODE_SHARE_ITEM_NOT_FOUND,
+	"该分享不存在",
+}
+
 // 通用
 const (
 	CODE_PARAMS_NOT_VALID = 900_0000 + iota

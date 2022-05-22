@@ -91,7 +91,7 @@ func GetDirList(parent_id, owner_id string) *[]Dir {
 func SearchDirList(owner_id, dirname string) *[]Dir {
 	var dirs []Dir
 	result := DB.Where(
-		"owner_id = ? and dirname like ?",
+		"user_id = ? and dirname like ?",
 		owner_id,
 		"%"+dirname+"%",
 	).Find(&dirs)
