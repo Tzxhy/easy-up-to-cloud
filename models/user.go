@@ -107,3 +107,12 @@ func GetAdminUser() *[]User {
 	}
 	return &users
 }
+
+func GetUserByIds(ids []string) *[]User {
+	var users []User
+	err := DB.Find(&users, ids).Error
+	if err != nil {
+		log.Print("GetUserByIds err: ", err)
+	}
+	return &users
+}

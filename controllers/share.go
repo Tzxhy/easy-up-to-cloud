@@ -52,16 +52,34 @@ func CreateShare(c *gin.Context) {
 	))
 }
 
+type ShareItemDetail struct {
+	models.ShareItem
+	ShareUserName string `json:"share_user"`
+}
+
 // 查看分享列表
 func GetShareList(c *gin.Context) {
 
 	list := models.GetAllShareItems()
 	if list != nil {
+		users := models.GetUserByIds(
+			*utils.Unique(*utils.Map(list, func(item models.ShareItem) string {
+				return item.UserId
+			})),
+		)
+		shareItemDetails := utils.Map(list, func(item models.ShareItem) ShareItemDetail {
+			return ShareItemDetail{
+				item,
+				utils.Find(users, func(user models.User) bool {
+					return user.Uid == item.UserId
+				}).Username,
+			}
+		})
 		c.JSON(http.StatusOK, utils.ReturnJSON(
 			constants.CODE_OK,
 			"",
 			&gin.H{
-				"list": list,
+				"list": shareItemDetails,
 			},
 		))
 	}
@@ -73,8 +91,8 @@ type GetShareDetailReq struct {
 
 type ShareDetailItem struct {
 	models.File
-	ParentDid string `json:"-"`
-	Url       string `json:"url"`
+	ShareUserName string `json:"share_user"`
+	Url           string `json:"url"`
 }
 
 func GetShareDetail(c *gin.Context) {
@@ -95,29 +113,36 @@ func GetShareDetail(c *gin.Context) {
 	}
 	if item.Fid != "" { // 文件分享
 		file := models.GetFileById(item.Fid)
+		user := models.GetUserById(file.UserId)
 		var ret = ShareDetailItem{
 			*file,
-			file.ParentDid,
+			user.Username,
 			getDownloadUrl(item.Sid),
 		}
 		c.JSON(http.StatusOK, utils.ReturnJSON(
 			constants.CODE_OK,
 			"",
 			&gin.H{
-				"type": 1,
+				"type": 2,
 				"file": ret,
 			},
 		))
 		return
 	} else if item.Did != "" {
 		list := models.GetFileList(item.Did, item.UserId)
-
+		users := models.GetUserByIds(
+			*utils.Unique(*utils.Map(list, func(item models.File) string {
+				return item.UserId
+			})),
+		)
 		newList := utils.Map(list, func(itemIn models.File) ShareDetailItem {
 			url := getDownloadUrl(item.Sid) + "&fid=" + itemIn.Fid
 
 			return ShareDetailItem{
 				itemIn,
-				itemIn.ParentDid,
+				utils.Find(users, func(user models.User) bool {
+					return user.Uid == itemIn.UserId
+				}).Username,
 				url,
 			}
 		})
@@ -125,7 +150,7 @@ func GetShareDetail(c *gin.Context) {
 			constants.CODE_OK,
 			"",
 			&gin.H{
-				"type": 2,
+				"type": 1,
 				"dir":  newList,
 			},
 		))
