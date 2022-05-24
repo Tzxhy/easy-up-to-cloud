@@ -206,3 +206,20 @@ func ShareDownload(c *gin.Context) {
 		downloadFile(file.Fid, item.UserId, file.Filename, c)
 	}
 }
+
+func DeleteShare(c *gin.Context) {
+	var deleteReq GetShareDetailReq
+	if c.ShouldBind(&deleteReq) != nil {
+		utils.ReturnParamNotValid(c)
+		return
+	}
+	uid, _ := c.Get("uid")
+	ok := models.DeleteShare(deleteReq.Sid, uid.(string))
+	c.JSON(http.StatusOK, utils.ReturnJSON(
+		constants.CODE_OK,
+		"",
+		&gin.H{
+			"success": ok,
+		},
+	))
+}

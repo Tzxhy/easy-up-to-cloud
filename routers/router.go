@@ -37,7 +37,7 @@ func InitRouter() *gin.Engine {
 		fs.POST("delete-dir", controllers.DeleteDir)
 		fs.POST("move-dir", controllers.MoveDir)
 		fs.POST("rename-dir", controllers.RenameDir)
-		fs.GET("get-dir-list", controllers.GetDirList) // TODO 群组增加相关字段
+		fs.GET("get-dir-list", controllers.GetDirList)
 		fs.GET("get-dir-info", controllers.GetDir)
 		fs.GET("search", controllers.SearchFileOrDir)
 
@@ -83,6 +83,7 @@ func InitRouter() *gin.Engine {
 		share.GET("detail", controllers.GetShareDetail)
 		// 下载具体item
 		share.GET("download", controllers.ShareDownload)
+		share.POST("delete", middlewares.NeedAuth(), controllers.DeleteShare)
 	}
 	// 离线下载
 	// offlineDownload := v1.Group("download")

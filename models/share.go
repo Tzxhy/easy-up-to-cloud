@@ -59,3 +59,43 @@ func GetAllShareItems() *[]ShareItem {
 	}
 	return nil
 }
+
+func DeleteShare(sid, uid string) bool {
+	ret := DB.Where(&ShareItem{
+		Sid:    sid,
+		UserId: uid,
+	}).Delete(&ShareItem{})
+	err := ret.Error
+
+	if err != nil {
+		return false
+	}
+	return ret.RowsAffected == 1
+}
+func DeleteShareByFid(fid string) uint8 {
+	if fid == "" {
+		return 0
+	}
+	ret := DB.Where(&ShareItem{
+		Fid: fid,
+	}).Delete(&ShareItem{})
+	err := ret.Error
+	if err != nil {
+		return 0
+	}
+	return uint8(ret.RowsAffected)
+}
+
+func DeleteShareByDid(did string) uint8 {
+	if did == "" {
+		return 0
+	}
+	ret := DB.Where(&ShareItem{
+		Did: did,
+	}).Delete(&ShareItem{})
+	err := ret.Error
+	if err != nil {
+		return 0
+	}
+	return uint8(ret.RowsAffected)
+}

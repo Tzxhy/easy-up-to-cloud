@@ -151,6 +151,8 @@ func DeleteDir(c *gin.Context) {
 		// models.Get
 		uid, _ := c.Get("uid")
 		deleteDir(uid.(string), deleteDirInfo.DirId)
+		// 当删除时，同时删除分享
+		models.DeleteShareByDid(deleteDirInfo.DirId)
 		c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 		return
 	} else {

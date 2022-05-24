@@ -242,6 +242,8 @@ func DeleteFile(c *gin.Context) {
 		if deleteCode == OK {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_OK, "", nil))
 			models.DeleteResourceByFid(fileIdReq.Fid)
+			// 当删除时，同时删除分享
+			models.DeleteShareByFid(fileIdReq.Fid)
 			return
 		} else if FILE_NOT_FOUND == deleteCode {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_FILE_NOT_EXIST, constants.CODE_FILE_NOT_EXIST_TIPS.Tip, nil))
