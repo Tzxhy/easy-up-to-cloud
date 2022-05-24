@@ -7,3 +7,4 @@ web
 .DS_Store
 *.db
 assets/
+*.zip

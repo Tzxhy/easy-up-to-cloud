@@ -1,13 +1,14 @@
 {
 	"cSpell.words": [
-		"datetime",
-		"Filesize",
-		"gonic",
-		"gorm",
-		"rakyll",
-		"RTYPE",
-		"statik"
-	],
+        "datetime",
+        "Filesize",
+        "gonic",
+        "gorm",
+        "oper",
+        "rakyll",
+        "RTYPE",
+        "statik"
+    ],
 	"go.toolsEnvVars": {
 		"GOPROXY": "https://goproxy.io,direct"
 	}

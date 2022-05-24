@@ -55,11 +55,12 @@ func CreateShare(c *gin.Context) {
 type ShareItemDetail struct {
 	models.ShareItem
 	ShareUserName string `json:"share_user"`
+	CanOper       bool   `json:"can_oper"`
 }
 
 // 查看分享列表
 func GetShareList(c *gin.Context) {
-
+	uid, hasUid := c.Get("uid")
 	list := models.GetAllShareItems()
 	if list != nil {
 		users := models.GetUserByIds(
@@ -73,6 +74,7 @@ func GetShareList(c *gin.Context) {
 				utils.Find(users, func(user models.User) bool {
 					return user.Uid == item.UserId
 				}).Username,
+				hasUid && item.UserId == uid.(string),
 			}
 		})
 		c.JSON(http.StatusOK, utils.ReturnJSON(
