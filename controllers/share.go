@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"time"
 
 	"gitee.com/tzxhy/web/constants"
 	"gitee.com/tzxhy/web/models"
@@ -56,6 +57,7 @@ type ShareItemDetail struct {
 	models.ShareItem
 	ShareUserName string `json:"share_user"`
 	CanOper       bool   `json:"can_oper"`
+	NeedPassword  bool   `json:"lock"`
 }
 
 // 查看分享列表
@@ -75,6 +77,7 @@ func GetShareList(c *gin.Context) {
 					return user.Uid == item.UserId
 				}).Username,
 				hasUid && item.UserId == uid.(string),
+				item.Password != "",
 			}
 		})
 		c.JSON(http.StatusOK, utils.ReturnJSON(
@@ -88,7 +91,8 @@ func GetShareList(c *gin.Context) {
 }
 
 type GetShareDetailReq struct {
-	Sid string `json:"sid" form:"sid" binding:"required"`
+	Sid      string `json:"sid" form:"sid" binding:"required"`
+	Password string `json:"password" form:"password"`
 }
 
 type ShareDetailItem struct {
@@ -97,6 +101,9 @@ type ShareDetailItem struct {
 	Url           string `json:"url"`
 }
 
+// 查看分享详情
+// 已登录用户，判断是否是分享本人；
+// 未登录，判断是否有该item的cookie（从请求带password来）
 func GetShareDetail(c *gin.Context) {
 	var getShareDetailReq GetShareDetailReq
 	if c.ShouldBindQuery(&getShareDetailReq) != nil {
@@ -105,6 +112,7 @@ func GetShareDetail(c *gin.Context) {
 	}
 
 	item := models.GetShareItem(getShareDetailReq.Sid)
+
 	if item == nil {
 		c.JSON(http.StatusOK, utils.ReturnJSON(
 			constants.CODE_SHARE_ITEM_NOT_FOUND_TIPS.Code,
@@ -113,6 +121,35 @@ func GetShareDetail(c *gin.Context) {
 		))
 		return
 	}
+
+	uid, hasUid := c.Get("uid")
+
+	if hasUid { // 已登录
+		isSharer := uid.(string) == item.UserId
+		if !isSharer && getShareDetailReq.Password != item.Password {
+			c.JSON(http.StatusOK, utils.ReturnJSON(
+				constants.CODE_SHARE_ITEM_NEED_PASSWORD_TIPS.Code,
+				constants.CODE_SHARE_ITEM_NEED_PASSWORD_TIPS.Tip,
+				nil,
+			))
+			return
+		}
+	} else { // 未登录
+		if getShareDetailReq.Password == item.Password {
+			tokenString, _ := utils.GenShareItemToken(item.Sid)
+			timeSecond := int(time.Hour.Seconds() * 24)
+			// 添加 cookie 以便后续资源访问时可以接续
+			c.SetCookie(constants.SHARE_ITEM_PREFIX_COOKIE_NAME+item.Sid, tokenString, timeSecond, "/", "", false, true)
+		} else {
+			c.JSON(http.StatusOK, utils.ReturnJSON(
+				constants.CODE_SHARE_ITEM_NEED_PASSWORD_TIPS.Code,
+				constants.CODE_SHARE_ITEM_NEED_PASSWORD_TIPS.Tip,
+				nil,
+			))
+			return
+		}
+	}
+
 	if item.Fid != "" { // 文件分享
 		file := models.GetFileById(item.Fid)
 		user := models.GetUserById(file.UserId)

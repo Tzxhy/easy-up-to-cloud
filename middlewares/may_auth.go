@@ -16,7 +16,7 @@ func MayAuth() gin.HandlerFunc {
 			return
 		}
 
-		mc, err := utils.ParseToken(token)
+		mc, err := utils.ParseUserToken(token)
 
 		if err != nil {
 			c.Next()

@@ -53,7 +53,7 @@ func Login(c *gin.Context) {
 	userInfo := models.GetUserByNameAndPassword(loginInfo.Username, loginInfo.Password)
 	if userInfo != nil {
 		// 为用户生成token
-		tokenString, _ := utils.GenToken(userInfo.Username, userInfo.Uid)
+		tokenString, _ := utils.GenUserToken(userInfo.Username, userInfo.Uid)
 		timeSecond := 0
 		if loginInfo.Remember {
 			timeSecond = int(time.Hour.Seconds() * 24)

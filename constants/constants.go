@@ -10,6 +10,7 @@ var ROOT_PATH, _ = os.Getwd()
 var UPLOAD_PATH = filepath.Join(ROOT_PATH, "upload")
 
 const TOKEN_COOKIE_NAME = "token"
+const SHARE_ITEM_PREFIX_COOKIE_NAME = "share-item_"
 
 const USER_ID_SPLITTER = ";"
 

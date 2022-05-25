@@ -80,7 +80,7 @@ func InitRouter() *gin.Engine {
 		// 查看分享列表
 		share.GET("list", middlewares.MayAuth(), controllers.GetShareList)
 		// 查看具体item
-		share.GET("detail", controllers.GetShareDetail)
+		share.GET("detail", middlewares.MayAuth(), controllers.GetShareDetail)
 		// 下载具体item
 		share.GET("download", controllers.ShareDownload)
 		share.POST("delete", middlewares.NeedAuth(), controllers.DeleteShare)

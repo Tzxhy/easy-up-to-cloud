@@ -19,7 +19,7 @@ func NeedAuth() gin.HandlerFunc {
 			return
 		}
 
-		mc, err := utils.ParseToken(token)
+		mc, err := utils.ParseUserToken(token)
 
 		if err != nil {
 			c.JSON(http.StatusOK, utils.ReturnJSON(constants.CODE_TOKEN_NOT_VALID_TIPS.Code, constants.CODE_TOKEN_NOT_VALID_TIPS.Tip, nil))
